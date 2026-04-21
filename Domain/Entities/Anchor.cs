@@ -35,6 +35,9 @@ public class Anchor : BaseEntity
     public ICollection<TagDataEvent> TagDataEvents { get; private set; } = new List<TagDataEvent>();
     public ICollection<UwbRangingEvent> UwbRangingEvents { get; private set; } = new List<UwbRangingEvent>();
 
+    public ICollection<AnchorConfigEvent> ConfigEvents { get; private set; } = new List<AnchorConfigEvent>();
+    public ICollection<AnchorConfigSnapshot> ConfigSnapshots { get; private set; } = new List<AnchorConfigSnapshot>();
+
     public static Anchor Create(
         string externalId,
         string code,

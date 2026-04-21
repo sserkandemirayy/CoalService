@@ -42,6 +42,16 @@ public class Tag : BaseEntity
     public ICollection<UwbTagToTagRangingEvent> PrimaryUwbTagToTagRangingEvents { get; private set; } = new List<UwbTagToTagRangingEvent>();
     public ICollection<UwbTagToTagRangingEvent> PeerUwbTagToTagRangingEvents { get; private set; } = new List<UwbTagToTagRangingEvent>();
 
+    public ICollection<BleConfigEvent> BleConfigEvents { get; private set; } = new List<BleConfigEvent>();
+    public ICollection<UwbConfigEvent> UwbConfigEvents { get; private set; } = new List<UwbConfigEvent>();
+    public ICollection<DioConfigEvent> DioConfigEvents { get; private set; } = new List<DioConfigEvent>();
+    public ICollection<I2cConfigEvent> I2cConfigEvents { get; private set; } = new List<I2cConfigEvent>();
+
+    public ICollection<TagBleConfigSnapshot> BleConfigSnapshots { get; private set; } = new List<TagBleConfigSnapshot>();
+    public ICollection<TagUwbConfigSnapshot> UwbConfigSnapshots { get; private set; } = new List<TagUwbConfigSnapshot>();
+    public ICollection<TagDioConfigSnapshot> DioConfigSnapshots { get; private set; } = new List<TagDioConfigSnapshot>();
+    public ICollection<TagI2cConfigSnapshot> I2cConfigSnapshots { get; private set; } = new List<TagI2cConfigSnapshot>();
+
     public static Tag Create(
         string externalId,
         string code,

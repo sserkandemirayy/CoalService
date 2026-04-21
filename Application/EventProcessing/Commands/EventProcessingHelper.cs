@@ -19,4 +19,7 @@ internal static class EventProcessingHelper
 
     public static AnchorStatus ParseAnchorStatus(string value)
         => Enum.Parse<AnchorStatus>(value, true);
+
+    public static DioDirection ParseDioDirection(string value)
+    => Enum.Parse<DioDirection>(value, true);
 }

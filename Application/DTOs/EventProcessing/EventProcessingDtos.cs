@@ -227,3 +227,220 @@ public sealed record UwbTagToTagRangingEventDto(
     DateTime EventTimestamp,
     decimal Distance
 );
+
+public sealed record AnchorPositionPayloadDto(decimal X, decimal Y, decimal Z);
+
+public sealed record AnchorNetworkPayloadDto(
+    string MacAddress,
+    string IpAddress,
+    string Netmask,
+    string Gateway,
+    string Dns,
+    bool DhcpEnabled
+);
+
+public sealed record AnchorUwbPayloadDto(
+    bool Enabled,
+    int Channel,
+    decimal TxPower
+);
+
+public sealed record AnchorBlePayloadDto(
+    bool Enabled,
+    decimal TxPower
+);
+
+public sealed record AnchorConfigReportedPayloadDto(
+    Guid Id,
+    string Type,
+    long Timestamp,
+    string AnchorId,
+    string FirmwareVersion,
+    AnchorPositionPayloadDto Position,
+    AnchorNetworkPayloadDto Network,
+    AnchorUwbPayloadDto Uwb,
+    AnchorBlePayloadDto Ble,
+    long HeartbeatInterval,
+    long ReportInterval
+);
+
+public sealed record BleConfigReportedPayloadDto(
+    Guid Id,
+    string Type,
+    long Timestamp,
+    string TagId,
+    bool Enabled,
+    decimal TxPower,
+    long AdvertisementInterval,
+    bool MeshEnabled
+);
+
+public sealed record UwbConfigReportedPayloadDto(
+    Guid Id,
+    string Type,
+    long Timestamp,
+    string TagId,
+    bool Enabled,
+    int Channel,
+    decimal TxPower,
+    long RangingInterval,
+    bool TagToTagEnabled,
+    long TagToTagInterval
+);
+
+public sealed record DioLowPassFilterPayloadDto(
+    bool Enabled,
+    long TimeConstant
+);
+
+public sealed record DioConfigReportedPayloadDto(
+    Guid Id,
+    string Type,
+    long Timestamp,
+    string TagId,
+    int Pin,
+    string Direction,
+    bool PeriodicReportEnabled,
+    long PeriodicReportInterval,
+    bool ReportOnChange,
+    DioLowPassFilterPayloadDto LowPassFilter
+);
+
+public sealed record I2cDevicePayloadDto(
+    string? Address,
+    string? Name,
+    string? Type,
+    string? MetadataJson
+);
+
+public sealed record I2cConfigReportedPayloadDto(
+    Guid Id,
+    string Type,
+    long Timestamp,
+    string TagId,
+    bool Enabled,
+    int ClockSpeed,
+    List<I2cDevicePayloadDto> Devices
+);
+
+public sealed record AnchorConfigEventDto(
+    Guid Id,
+    Guid RawEventId,
+    Guid AnchorId,
+    DateTime EventTimestamp,
+    string FirmwareVersion,
+    string PositionJson,
+    string NetworkJson,
+    string UwbJson,
+    string BleJson,
+    long HeartbeatInterval,
+    long ReportInterval
+);
+
+public sealed record AnchorConfigSnapshotDto(
+    Guid Id,
+    Guid AnchorId,
+    Guid LastRawEventId,
+    DateTime LastReportedAt,
+    string FirmwareVersion,
+    string PositionJson,
+    string NetworkJson,
+    string UwbJson,
+    string BleJson,
+    long HeartbeatInterval,
+    long ReportInterval
+);
+
+public sealed record BleConfigEventDto(
+    Guid Id,
+    Guid RawEventId,
+    Guid TagId,
+    DateTime EventTimestamp,
+    bool Enabled,
+    decimal TxPower,
+    long AdvertisementInterval,
+    bool MeshEnabled
+);
+
+public sealed record TagBleConfigSnapshotDto(
+    Guid Id,
+    Guid TagId,
+    Guid LastRawEventId,
+    DateTime LastReportedAt,
+    bool Enabled,
+    decimal TxPower,
+    long AdvertisementInterval,
+    bool MeshEnabled
+);
+
+public sealed record UwbConfigEventDto(
+    Guid Id,
+    Guid RawEventId,
+    Guid TagId,
+    DateTime EventTimestamp,
+    bool Enabled,
+    int Channel,
+    decimal TxPower,
+    long RangingInterval,
+    bool TagToTagEnabled,
+    long TagToTagInterval
+);
+
+public sealed record TagUwbConfigSnapshotDto(
+    Guid Id,
+    Guid TagId,
+    Guid LastRawEventId,
+    DateTime LastReportedAt,
+    bool Enabled,
+    int Channel,
+    decimal TxPower,
+    long RangingInterval,
+    bool TagToTagEnabled,
+    long TagToTagInterval
+);
+
+public sealed record DioConfigEventDto(
+    Guid Id,
+    Guid RawEventId,
+    Guid TagId,
+    DateTime EventTimestamp,
+    int Pin,
+    string Direction,
+    bool PeriodicReportEnabled,
+    long PeriodicReportInterval,
+    bool ReportOnChange,
+    string LowPassFilterJson
+);
+
+public sealed record TagDioConfigSnapshotDto(
+    Guid Id,
+    Guid TagId,
+    int Pin,
+    Guid LastRawEventId,
+    DateTime LastReportedAt,
+    string Direction,
+    bool PeriodicReportEnabled,
+    long PeriodicReportInterval,
+    bool ReportOnChange,
+    string LowPassFilterJson
+);
+
+public sealed record I2cConfigEventDto(
+    Guid Id,
+    Guid RawEventId,
+    Guid TagId,
+    DateTime EventTimestamp,
+    bool Enabled,
+    int ClockSpeed,
+    string DevicesJson
+);
+
+public sealed record TagI2cConfigSnapshotDto(
+    Guid Id,
+    Guid TagId,
+    Guid LastRawEventId,
+    DateTime LastReportedAt,
+    bool Enabled,
+    int ClockSpeed,
+    string DevicesJson
+);

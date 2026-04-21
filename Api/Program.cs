@@ -89,6 +89,21 @@ builder.Services.AddScoped<ITagDataEventRepository, TagDataEventRepository>();
 builder.Services.AddScoped<IUwbRangingEventRepository, UwbRangingEventRepository>();
 builder.Services.AddScoped<IUwbTagToTagRangingEventRepository, UwbTagToTagRangingEventRepository>();
 
+builder.Services.AddScoped<IAnchorConfigEventRepository, AnchorConfigEventRepository>();
+builder.Services.AddScoped<IAnchorConfigSnapshotRepository, AnchorConfigSnapshotRepository>();
+
+builder.Services.AddScoped<IBleConfigEventRepository, BleConfigEventRepository>();
+builder.Services.AddScoped<ITagBleConfigSnapshotRepository, TagBleConfigSnapshotRepository>();
+
+builder.Services.AddScoped<IUwbConfigEventRepository, UwbConfigEventRepository>();
+builder.Services.AddScoped<ITagUwbConfigSnapshotRepository, TagUwbConfigSnapshotRepository>();
+
+builder.Services.AddScoped<IDioConfigEventRepository, DioConfigEventRepository>();
+builder.Services.AddScoped<ITagDioConfigSnapshotRepository, TagDioConfigSnapshotRepository>();
+
+builder.Services.AddScoped<II2cConfigEventRepository, I2cConfigEventRepository>();
+builder.Services.AddScoped<ITagI2cConfigSnapshotRepository, TagI2cConfigSnapshotRepository>();
+
 // MediatR + Validation
 builder.Services.AddMediatR(cfg =>
 {
@@ -173,8 +188,6 @@ builder.Services.AddAuthorization(options =>
     // =========================
     // ===== ROOM POLICIES =====
     // =========================
-    // FE/BE’de RoomsController’da kullanılan politikalar:
-    //   room:view, room:manage, room:assignEquipment, room:assignStaff, room:maintain
     options.AddPolicy("room:view", p => p.RequireClaim("permission", "room:view"));
     options.AddPolicy("room:manage", p => p.RequireClaim("permission", "room:manage"));
     options.AddPolicy("room:assignEquipment", p => p.RequireClaim("permission", "room:assignEquipment"));

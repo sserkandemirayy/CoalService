@@ -350,4 +350,164 @@ public class EventProcessingController : BaseController
 
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
+
+    [HttpPost("anchor-config-reported")]
+    public async Task<IActionResult> ProcessAnchorConfigReported(
+    [FromBody] AnchorConfigReportedPayloadDto payload,
+    CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ProcessAnchorConfigReportedCommand(payload), ct);
+
+        return result.IsSuccess
+            ? Ok(new { id = result.Value, status = "processed" })
+            : BadRequest(new { error = result.Error });
+    }
+
+    [HttpPost("ble-config-reported")]
+    public async Task<IActionResult> ProcessBleConfigReported(
+        [FromBody] BleConfigReportedPayloadDto payload,
+        CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ProcessBleConfigReportedCommand(payload), ct);
+
+        return result.IsSuccess
+            ? Ok(new { id = result.Value, status = "processed" })
+            : BadRequest(new { error = result.Error });
+    }
+
+    [HttpPost("uwb-config-reported")]
+    public async Task<IActionResult> ProcessUwbConfigReported(
+        [FromBody] UwbConfigReportedPayloadDto payload,
+        CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ProcessUwbConfigReportedCommand(payload), ct);
+
+        return result.IsSuccess
+            ? Ok(new { id = result.Value, status = "processed" })
+            : BadRequest(new { error = result.Error });
+    }
+
+    [HttpPost("dio-config-reported")]
+    public async Task<IActionResult> ProcessDioConfigReported(
+        [FromBody] DioConfigReportedPayloadDto payload,
+        CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ProcessDioConfigReportedCommand(payload), ct);
+
+        return result.IsSuccess
+            ? Ok(new { id = result.Value, status = "processed" })
+            : BadRequest(new { error = result.Error });
+    }
+
+    [HttpPost("i2c-config-reported")]
+    public async Task<IActionResult> ProcessI2cConfigReported(
+        [FromBody] I2cConfigReportedPayloadDto payload,
+        CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ProcessI2cConfigReportedCommand(payload), ct);
+
+        return result.IsSuccess
+            ? Ok(new { id = result.Value, status = "processed" })
+            : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("anchor-config/by-anchor/{anchorId:guid}")]
+    public async Task<IActionResult> GetAnchorConfigEventsByAnchorId(
+        Guid anchorId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(
+            new GetAnchorConfigEventsByAnchorIdQuery(anchorId, page, pageSize), ct);
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("anchor-config/current/{anchorId:guid}")]
+    public async Task<IActionResult> GetCurrentAnchorConfigByAnchorId(Guid anchorId, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetCurrentAnchorConfigByAnchorIdQuery(anchorId), ct);
+        return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
+    }
+
+    [HttpGet("ble-config/by-tag/{tagId:guid}")]
+    public async Task<IActionResult> GetBleConfigEventsByTagId(
+        Guid tagId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(
+            new GetBleConfigEventsByTagIdQuery(tagId, page, pageSize), ct);
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("ble-config/current/{tagId:guid}")]
+    public async Task<IActionResult> GetCurrentBleConfigByTagId(Guid tagId, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetCurrentBleConfigByTagIdQuery(tagId), ct);
+        return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
+    }
+
+    [HttpGet("uwb-config/by-tag/{tagId:guid}")]
+    public async Task<IActionResult> GetUwbConfigEventsByTagId(
+        Guid tagId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(
+            new GetUwbConfigEventsByTagIdQuery(tagId, page, pageSize), ct);
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("uwb-config/current/{tagId:guid}")]
+    public async Task<IActionResult> GetCurrentUwbConfigByTagId(Guid tagId, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetCurrentUwbConfigByTagIdQuery(tagId), ct);
+        return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
+    }
+
+    [HttpGet("dio-config/by-tag/{tagId:guid}")]
+    public async Task<IActionResult> GetDioConfigEventsByTagId(
+        Guid tagId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(
+            new GetDioConfigEventsByTagIdQuery(tagId, page, pageSize), ct);
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("dio-config/current/{tagId:guid}")]
+    public async Task<IActionResult> GetCurrentDioConfigsByTagId(Guid tagId, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetCurrentDioConfigsByTagIdQuery(tagId), ct);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("i2c-config/by-tag/{tagId:guid}")]
+    public async Task<IActionResult> GetI2cConfigEventsByTagId(
+        Guid tagId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(
+            new GetI2cConfigEventsByTagIdQuery(tagId, page, pageSize), ct);
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("i2c-config/current/{tagId:guid}")]
+    public async Task<IActionResult> GetCurrentI2cConfigByTagId(Guid tagId, CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetCurrentI2cConfigByTagIdQuery(tagId), ct);
+        return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
+    }
 }
