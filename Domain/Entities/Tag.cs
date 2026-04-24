@@ -52,6 +52,13 @@ public class Tag : BaseEntity
     public ICollection<TagDioConfigSnapshot> DioConfigSnapshots { get; private set; } = new List<TagDioConfigSnapshot>();
     public ICollection<TagI2cConfigSnapshot> I2cConfigSnapshots { get; private set; } = new List<TagI2cConfigSnapshot>();
 
+    public ICollection<BleAdvertisementEvent> BleAdvertisementEvents { get; private set; } = new List<BleAdvertisementEvent>();
+    public ICollection<DioValueEvent> DioValueEvents { get; private set; } = new List<DioValueEvent>();
+    public ICollection<TagDioValueSnapshot> DioValueSnapshots { get; private set; } = new List<TagDioValueSnapshot>();
+    public ICollection<I2cDataEvent> I2cDataEvents { get; private set; } = new List<I2cDataEvent>();
+
+    public ICollection<CommandRequest> CommandRequests { get; private set; } = new List<CommandRequest>();
+
     public static Tag Create(
         string externalId,
         string code,

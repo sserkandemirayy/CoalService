@@ -52,7 +52,6 @@ public sealed class ProcessProximityAlertRaisedCommandHandler : IRequestHandler<
         if (tag is null)
         {
             rawEvent.MarkFailed("Primary tag not found.");
-            await _rawEventRepository.UpdateAsync(rawEvent, ct);
             await _unitOfWork.SaveChangesAsync(ct);
             return Result<Guid>.Failure("Primary tag not found.");
         }
@@ -61,7 +60,6 @@ public sealed class ProcessProximityAlertRaisedCommandHandler : IRequestHandler<
         if (peerTag is null)
         {
             rawEvent.MarkFailed("Peer tag not found.");
-            await _rawEventRepository.UpdateAsync(rawEvent, ct);
             await _unitOfWork.SaveChangesAsync(ct);
             return Result<Guid>.Failure("Peer tag not found.");
         }
@@ -105,7 +103,6 @@ public sealed class ProcessProximityAlertRaisedCommandHandler : IRequestHandler<
         await _tagRepository.UpdateAsync(peerTag, ct);
 
         rawEvent.MarkProcessed();
-        await _rawEventRepository.UpdateAsync(rawEvent, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(proximityEvent.Id);

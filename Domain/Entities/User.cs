@@ -42,6 +42,9 @@ public class User : BaseEntity
     public ICollection<UserBranch> UserBranches { get; private set; } = new List<UserBranch>();
     public ICollection<RefreshToken> RefreshTokens { get; private set; } = new List<RefreshToken>();
 
+    public ICollection<CommandRequest> RequestedCommands { get; private set; } = new List<CommandRequest>();
+    public ICollection<CommandStatusHistory> CommandStatusChanges { get; private set; } = new List<CommandStatusHistory>();
+
     public static User Create(
         string email,
         string passwordHash,

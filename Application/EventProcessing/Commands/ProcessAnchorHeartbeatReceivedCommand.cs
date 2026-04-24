@@ -48,7 +48,6 @@ public sealed class ProcessAnchorHeartbeatReceivedCommandHandler : IRequestHandl
         if (anchor is null)
         {
             rawEvent.MarkFailed("Anchor not found.");
-            await _rawEventRepository.UpdateAsync(rawEvent, ct);
             await _unitOfWork.SaveChangesAsync(ct);
             return Result<Guid>.Failure("Anchor not found.");
         }
@@ -65,7 +64,6 @@ public sealed class ProcessAnchorHeartbeatReceivedCommandHandler : IRequestHandl
         await _anchorRepository.UpdateAsync(anchor, ct);
 
         rawEvent.MarkProcessed();
-        await _rawEventRepository.UpdateAsync(rawEvent, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(heartbeatEvent.Id);

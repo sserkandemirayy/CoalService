@@ -630,6 +630,60 @@ namespace Infrastructure.Migrations
                     b.ToTable("BatteryEvents");
                 });
 
+            modelBuilder.Entity("Domain.Entities.BleAdvertisementEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AnchorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("EventTimestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RawEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Rssi")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnchorId");
+
+                    b.HasIndex("EventTimestamp");
+
+                    b.HasIndex("RawEventId");
+
+                    b.HasIndex("TagId");
+
+                    b.HasIndex("TagId", "EventTimestamp");
+
+                    b.ToTable("BleAdvertisementEvents");
+                });
+
             modelBuilder.Entity("Domain.Entities.BleConfigEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -762,6 +816,180 @@ namespace Infrastructure.Migrations
                     b.HasIndex("CompanyId");
 
                     b.ToTable("Branches");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CommandRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AnchorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CommandType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExternalCorrelationId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("FailedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("LastRetriedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("QueuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResponseJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("TagId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnchorId");
+
+                    b.HasIndex("CommandType");
+
+                    b.HasIndex("RequestedAt");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TagId");
+
+                    b.HasIndex("TargetType");
+
+                    b.HasIndex("Status", "RequestedAt");
+
+                    b.ToTable("CommandRequests");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CommandStatusHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ChangedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CommandRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DataJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NewStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("OldStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedAt");
+
+                    b.HasIndex("ChangedByUserId");
+
+                    b.HasIndex("CommandRequestId");
+
+                    b.HasIndex("CommandRequestId", "ChangedAt");
+
+                    b.ToTable("CommandStatusHistories");
                 });
 
             modelBuilder.Entity("Domain.Entities.Company", b =>
@@ -989,6 +1217,60 @@ namespace Infrastructure.Migrations
                     b.ToTable("DioConfigEvents");
                 });
 
+            modelBuilder.Entity("Domain.Entities.DioValueEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("EventTimestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Pin")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("RawEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Value")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventTimestamp");
+
+                    b.HasIndex("Pin");
+
+                    b.HasIndex("RawEventId");
+
+                    b.HasIndex("TagId");
+
+                    b.HasIndex("TagId", "Pin", "EventTimestamp");
+
+                    b.ToTable("DioValueEvents");
+                });
+
             modelBuilder.Entity("Domain.Entities.EmergencyEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1089,6 +1371,70 @@ namespace Infrastructure.Migrations
                     b.HasIndex("TagId", "EventTimestamp");
 
                     b.ToTable("I2cConfigEvents");
+                });
+
+            modelBuilder.Entity("Domain.Entities.I2cDataEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Ack")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Address")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DataJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("EventTimestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RawEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Register")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventTimestamp");
+
+                    b.HasIndex("RawEventId");
+
+                    b.HasIndex("TagId");
+
+                    b.HasIndex("TagId", "EventTimestamp");
+
+                    b.ToTable("I2cDataEvents");
                 });
 
             modelBuilder.Entity("Domain.Entities.ImuEvent", b =>
@@ -1210,6 +1556,82 @@ namespace Infrastructure.Migrations
                     b.HasIndex("TagId", "EventTimestamp");
 
                     b.ToTable("LocationEvents");
+                });
+
+            modelBuilder.Entity("Domain.Entities.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AggregateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AggregateType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DispatchedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FailedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("MessageType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AggregateId");
+
+                    b.HasIndex("AggregateType");
+
+                    b.HasIndex("MessageType");
+
+                    b.HasIndex("OccurredAt");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("Status", "OccurredAt");
+
+                    b.ToTable("OutboxMessages");
                 });
 
             modelBuilder.Entity("Domain.Entities.Permission", b =>
@@ -1894,6 +2316,55 @@ namespace Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("TagDioConfigSnapshots");
+                });
+
+            modelBuilder.Entity("Domain.Entities.TagDioValueSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LastRawEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("LastReportedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Pin")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Value")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastReportedAt");
+
+                    b.HasIndex("TagId", "Pin")
+                        .IsUnique();
+
+                    b.ToTable("TagDioValueSnapshots");
                 });
 
             modelBuilder.Entity("Domain.Entities.TagI2cConfigSnapshot", b =>
@@ -2683,6 +3154,33 @@ namespace Infrastructure.Migrations
                     b.Navigation("Tag");
                 });
 
+            modelBuilder.Entity("Domain.Entities.BleAdvertisementEvent", b =>
+                {
+                    b.HasOne("Domain.Entities.Anchor", "Anchor")
+                        .WithMany("BleAdvertisementEvents")
+                        .HasForeignKey("AnchorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.RawEvent", "RawEvent")
+                        .WithMany()
+                        .HasForeignKey("RawEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Tag", "Tag")
+                        .WithMany("BleAdvertisementEvents")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Anchor");
+
+                    b.Navigation("RawEvent");
+
+                    b.Navigation("Tag");
+                });
+
             modelBuilder.Entity("Domain.Entities.BleConfigEvent", b =>
                 {
                     b.HasOne("Domain.Entities.RawEvent", "RawEvent")
@@ -2711,6 +3209,49 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CommandRequest", b =>
+                {
+                    b.HasOne("Domain.Entities.Anchor", "Anchor")
+                        .WithMany("CommandRequests")
+                        .HasForeignKey("AnchorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Domain.Entities.User", "RequestedByUser")
+                        .WithMany("RequestedCommands")
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Tag", "Tag")
+                        .WithMany("CommandRequests")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Anchor");
+
+                    b.Navigation("RequestedByUser");
+
+                    b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CommandStatusHistory", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "ChangedByUser")
+                        .WithMany("CommandStatusChanges")
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Domain.Entities.CommandRequest", "CommandRequest")
+                        .WithMany("StatusHistory")
+                        .HasForeignKey("CommandRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChangedByUser");
+
+                    b.Navigation("CommandRequest");
                 });
 
             modelBuilder.Entity("Domain.Entities.CurrentLocation", b =>
@@ -2750,6 +3291,25 @@ namespace Infrastructure.Migrations
                     b.Navigation("Tag");
                 });
 
+            modelBuilder.Entity("Domain.Entities.DioValueEvent", b =>
+                {
+                    b.HasOne("Domain.Entities.RawEvent", "RawEvent")
+                        .WithMany()
+                        .HasForeignKey("RawEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Tag", "Tag")
+                        .WithMany("DioValueEvents")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RawEvent");
+
+                    b.Navigation("Tag");
+                });
+
             modelBuilder.Entity("Domain.Entities.EmergencyEvent", b =>
                 {
                     b.HasOne("Domain.Entities.RawEvent", "RawEvent")
@@ -2779,6 +3339,25 @@ namespace Infrastructure.Migrations
 
                     b.HasOne("Domain.Entities.Tag", "Tag")
                         .WithMany("I2cConfigEvents")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RawEvent");
+
+                    b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("Domain.Entities.I2cDataEvent", b =>
+                {
+                    b.HasOne("Domain.Entities.RawEvent", "RawEvent")
+                        .WithMany()
+                        .HasForeignKey("RawEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Tag", "Tag")
+                        .WithMany("I2cDataEvents")
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -2953,6 +3532,17 @@ namespace Infrastructure.Migrations
                 {
                     b.HasOne("Domain.Entities.Tag", "Tag")
                         .WithMany("DioConfigSnapshots")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("Domain.Entities.TagDioValueSnapshot", b =>
+                {
+                    b.HasOne("Domain.Entities.Tag", "Tag")
+                        .WithMany("DioValueSnapshots")
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -3147,6 +3737,10 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("BatteryEvents");
 
+                    b.Navigation("BleAdvertisementEvents");
+
+                    b.Navigation("CommandRequests");
+
                     b.Navigation("ConfigEvents");
 
                     b.Navigation("ConfigSnapshots");
@@ -3165,6 +3759,11 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.Branch", b =>
                 {
                     b.Navigation("UserBranches");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CommandRequest", b =>
+                {
+                    b.Navigation("StatusHistory");
                 });
 
             modelBuilder.Entity("Domain.Entities.Company", b =>
@@ -3192,9 +3791,13 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("BatteryEvents");
 
+                    b.Navigation("BleAdvertisementEvents");
+
                     b.Navigation("BleConfigEvents");
 
                     b.Navigation("BleConfigSnapshots");
+
+                    b.Navigation("CommandRequests");
 
                     b.Navigation("CurrentLocations");
 
@@ -3202,11 +3805,17 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("DioConfigSnapshots");
 
+                    b.Navigation("DioValueEvents");
+
+                    b.Navigation("DioValueSnapshots");
+
                     b.Navigation("EmergencyEvents");
 
                     b.Navigation("I2cConfigEvents");
 
                     b.Navigation("I2cConfigSnapshots");
+
+                    b.Navigation("I2cDataEvents");
 
                     b.Navigation("ImuEvents");
 
@@ -3235,7 +3844,11 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Entities.User", b =>
                 {
+                    b.Navigation("CommandStatusChanges");
+
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("RequestedCommands");
 
                     b.Navigation("UserBranches");
 

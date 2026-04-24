@@ -54,7 +54,6 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
         if (tag is null)
         {
             rawEvent.MarkFailed("Tag not found.");
-            await _rawEventRepository.UpdateAsync(rawEvent, ct);
             await _unitOfWork.SaveChangesAsync(ct);
             return Result<Guid>.Failure("Tag not found.");
         }
@@ -114,7 +113,6 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
         }
 
         rawEvent.MarkProcessed();
-        await _rawEventRepository.UpdateAsync(rawEvent, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(locationEvent.Id);

@@ -100,7 +100,6 @@ public sealed class ProcessAnchorStatusChangedCommandHandler : IRequestHandler<P
         }
 
         rawEvent.MarkProcessed();
-        await _rawEventRepository.UpdateAsync(rawEvent, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(statusEvent.Id);

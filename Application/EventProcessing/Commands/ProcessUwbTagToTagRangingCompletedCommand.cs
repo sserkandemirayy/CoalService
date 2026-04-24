@@ -48,7 +48,6 @@ public sealed class ProcessUwbTagToTagRangingCompletedCommandHandler : IRequestH
         if (tag is null)
         {
             rawEvent.MarkFailed("Primary tag not found.");
-            await _rawEventRepository.UpdateAsync(rawEvent, ct);
             await _unitOfWork.SaveChangesAsync(ct);
             return Result<Guid>.Failure("Primary tag not found.");
         }
@@ -57,7 +56,6 @@ public sealed class ProcessUwbTagToTagRangingCompletedCommandHandler : IRequestH
         if (peerTag is null)
         {
             rawEvent.MarkFailed("Peer tag not found.");
-            await _rawEventRepository.UpdateAsync(rawEvent, ct);
             await _unitOfWork.SaveChangesAsync(ct);
             return Result<Guid>.Failure("Peer tag not found.");
         }
@@ -78,7 +76,6 @@ public sealed class ProcessUwbTagToTagRangingCompletedCommandHandler : IRequestH
         await _tagRepository.UpdateAsync(peerTag, ct);
 
         rawEvent.MarkProcessed();
-        await _rawEventRepository.UpdateAsync(rawEvent, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(rangingEvent.Id);

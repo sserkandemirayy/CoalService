@@ -107,7 +107,6 @@ public sealed class ProcessAnchorConfigReportedCommandHandler : IRequestHandler<
         await _anchors.UpdateAsync(anchor, ct);
 
         raw.MarkProcessed();
-        await _rawEvents.UpdateAsync(raw, ct);
         await _uow.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(configEvent.Id);

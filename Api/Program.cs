@@ -1,4 +1,5 @@
 ﻿using Api.Extensions;
+using Api.Security;
 using Api.Services;
 using Application.Common.Behaviors;
 using Application.Common.Options;
@@ -103,6 +104,17 @@ builder.Services.AddScoped<ITagDioConfigSnapshotRepository, TagDioConfigSnapshot
 
 builder.Services.AddScoped<II2cConfigEventRepository, I2cConfigEventRepository>();
 builder.Services.AddScoped<ITagI2cConfigSnapshotRepository, TagI2cConfigSnapshotRepository>();
+
+builder.Services.AddScoped<IBleAdvertisementEventRepository, BleAdvertisementEventRepository>();
+builder.Services.AddScoped<IDioValueEventRepository, DioValueEventRepository>();
+builder.Services.AddScoped<ITagDioValueSnapshotRepository, TagDioValueSnapshotRepository>();
+builder.Services.AddScoped<II2cDataEventRepository, I2cDataEventRepository>();
+
+builder.Services.AddScoped<ICommandRequestRepository, CommandRequestRepository>();
+builder.Services.AddScoped<ICommandStatusHistoryRepository, CommandStatusHistoryRepository>();
+
+builder.Services.AddScoped<IOutboxMessageRepository, OutboxMessageRepository>();
+builder.Services.AddScoped<IntegrationApiKeyFilter>();
 
 // MediatR + Validation
 builder.Services.AddMediatR(cfg =>

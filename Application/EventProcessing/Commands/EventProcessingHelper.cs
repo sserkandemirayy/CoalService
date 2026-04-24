@@ -22,4 +22,7 @@ internal static class EventProcessingHelper
 
     public static DioDirection ParseDioDirection(string value)
     => Enum.Parse<DioDirection>(value, true);
+
+    public static I2cDataDirection ParseI2cDataDirection(string value)
+    => Enum.Parse<I2cDataDirection>(value, true);
 }

@@ -510,4 +510,102 @@ public class EventProcessingController : BaseController
         var result = await _mediator.Send(new GetCurrentI2cConfigByTagIdQuery(tagId), ct);
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
     }
+
+    [HttpPost("ble-advertisement-received")]
+    public async Task<IActionResult> ProcessBleAdvertisementReceived(
+    [FromBody] BleAdvertisementReceivedPayloadDto payload,
+    CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ProcessBleAdvertisementReceivedCommand(payload), ct);
+
+        return result.IsSuccess
+            ? Ok(new { id = result.Value, status = "processed" })
+            : BadRequest(new { error = result.Error });
+    }
+
+    [HttpPost("dio-value-reported")]
+    public async Task<IActionResult> ProcessDioValueReported(
+        [FromBody] DioValueReportedPayloadDto payload,
+        CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ProcessDioValueReportedCommand(payload), ct);
+
+        return result.IsSuccess
+            ? Ok(new { id = result.Value, status = "processed" })
+            : BadRequest(new { error = result.Error });
+    }
+
+    [HttpPost("i2c-data-received")]
+    public async Task<IActionResult> ProcessI2cDataReceived(
+        [FromBody] I2cDataReceivedPayloadDto payload,
+        CancellationToken ct)
+    {
+        var result = await _mediator.Send(new ProcessI2cDataReceivedCommand(payload), ct);
+
+        return result.IsSuccess
+            ? Ok(new { id = result.Value, status = "processed" })
+            : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("ble-advertisements/by-tag/{tagId:guid}")]
+    public async Task<IActionResult> GetBleAdvertisementEventsByTagId(
+        Guid tagId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(
+            new GetBleAdvertisementEventsByTagIdQuery(tagId, page, pageSize), ct);
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("ble-advertisements/by-anchor/{anchorId:guid}")]
+    public async Task<IActionResult> GetBleAdvertisementEventsByAnchorId(
+        Guid anchorId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(
+            new GetBleAdvertisementEventsByAnchorIdQuery(anchorId, page, pageSize), ct);
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("dio-values/by-tag/{tagId:guid}")]
+    public async Task<IActionResult> GetDioValueEventsByTagId(
+        Guid tagId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(
+            new GetDioValueEventsByTagIdQuery(tagId, page, pageSize), ct);
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("dio-values/current/{tagId:guid}")]
+    public async Task<IActionResult> GetCurrentDioValuesByTagId(
+        Guid tagId,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetCurrentDioValuesByTagIdQuery(tagId), ct);
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
+
+    [HttpGet("i2c-data/by-tag/{tagId:guid}")]
+    public async Task<IActionResult> GetI2cDataEventsByTagId(
+        Guid tagId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(
+            new GetI2cDataEventsByTagIdQuery(tagId, page, pageSize), ct);
+
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
+    }
 }

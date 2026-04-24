@@ -93,7 +93,6 @@ public sealed class ProcessBleConfigReportedCommandHandler : IRequestHandler<Pro
         await _tags.UpdateAsync(tag, ct);
 
         raw.MarkProcessed();
-        await _rawEvents.UpdateAsync(raw, ct);
         await _uow.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(configEvent.Id);

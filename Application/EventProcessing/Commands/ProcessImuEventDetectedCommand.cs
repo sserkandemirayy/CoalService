@@ -55,7 +55,6 @@ public sealed class ProcessImuEventDetectedCommandHandler : IRequestHandler<Proc
         if (tag is null)
         {
             rawEvent.MarkFailed("Tag not found.");
-            await _rawEventRepository.UpdateAsync(rawEvent, ct);
             await _unitOfWork.SaveChangesAsync(ct);
             return Result<Guid>.Failure("Tag not found.");
         }
@@ -104,7 +103,6 @@ public sealed class ProcessImuEventDetectedCommandHandler : IRequestHandler<Proc
         await _tagRepository.UpdateAsync(tag, ct);
 
         rawEvent.MarkProcessed();
-        await _rawEventRepository.UpdateAsync(rawEvent, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(imuEvent.Id);

@@ -444,3 +444,72 @@ public sealed record TagI2cConfigSnapshotDto(
     int ClockSpeed,
     string DevicesJson
 );
+
+public sealed record BleAdvertisementReceivedPayloadDto(
+    Guid Id,
+    string Type,
+    long Timestamp,
+    string AnchorId,
+    string TagId,
+    int Rssi
+);
+
+public sealed record DioValueReportedPayloadDto(
+    Guid Id,
+    string Type,
+    long Timestamp,
+    string TagId,
+    int Pin,
+    bool Value
+);
+
+public sealed record I2cDataReceivedPayloadDto(
+    Guid Id,
+    string Type,
+    long Timestamp,
+    string TagId,
+    int Address,
+    int Register,
+    string Direction,
+    bool Ack,
+    List<int> Data
+);
+
+public sealed record BleAdvertisementEventDto(
+    Guid Id,
+    Guid RawEventId,
+    Guid AnchorId,
+    Guid TagId,
+    DateTime EventTimestamp,
+    int Rssi
+);
+
+public sealed record DioValueEventDto(
+    Guid Id,
+    Guid RawEventId,
+    Guid TagId,
+    DateTime EventTimestamp,
+    int Pin,
+    bool Value
+);
+
+public sealed record TagDioValueSnapshotDto(
+    Guid Id,
+    Guid TagId,
+    int Pin,
+    Guid LastRawEventId,
+    DateTime LastReportedAt,
+    bool Value
+);
+
+public sealed record I2cDataEventDto(
+    Guid Id,
+    Guid RawEventId,
+    Guid TagId,
+    DateTime EventTimestamp,
+    int Address,
+    int Register,
+    string Direction,
+    bool Ack,
+    string DataJson
+);

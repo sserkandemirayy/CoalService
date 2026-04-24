@@ -38,6 +38,10 @@ public class Anchor : BaseEntity
     public ICollection<AnchorConfigEvent> ConfigEvents { get; private set; } = new List<AnchorConfigEvent>();
     public ICollection<AnchorConfigSnapshot> ConfigSnapshots { get; private set; } = new List<AnchorConfigSnapshot>();
 
+    public ICollection<BleAdvertisementEvent> BleAdvertisementEvents { get; private set; } = new List<BleAdvertisementEvent>();
+
+    public ICollection<CommandRequest> CommandRequests { get; private set; } = new List<CommandRequest>();
+
     public static Anchor Create(
         string externalId,
         string code,

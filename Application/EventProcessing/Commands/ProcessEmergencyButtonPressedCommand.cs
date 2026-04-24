@@ -55,7 +55,6 @@ public sealed class ProcessEmergencyButtonPressedCommandHandler : IRequestHandle
         if (tag is null)
         {
             rawEvent.MarkFailed("Tag not found.");
-            await _rawEventRepository.UpdateAsync(rawEvent, ct);
             await _unitOfWork.SaveChangesAsync(ct);
             return Result<Guid>.Failure("Tag not found.");
         }
@@ -84,7 +83,6 @@ public sealed class ProcessEmergencyButtonPressedCommandHandler : IRequestHandle
         await _tagRepository.UpdateAsync(tag, ct);
 
         rawEvent.MarkProcessed();
-        await _rawEventRepository.UpdateAsync(rawEvent, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(emergencyEvent.Id);

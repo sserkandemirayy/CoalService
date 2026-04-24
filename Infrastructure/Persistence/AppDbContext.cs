@@ -79,7 +79,15 @@ public class AppDbContext : DbContext
     public DbSet<I2cConfigEvent> I2cConfigEvents => Set<I2cConfigEvent>();
     public DbSet<TagI2cConfigSnapshot> TagI2cConfigSnapshots => Set<TagI2cConfigSnapshot>();
 
+    public DbSet<BleAdvertisementEvent> BleAdvertisementEvents => Set<BleAdvertisementEvent>();
+    public DbSet<DioValueEvent> DioValueEvents => Set<DioValueEvent>();
+    public DbSet<TagDioValueSnapshot> TagDioValueSnapshots => Set<TagDioValueSnapshot>();
+    public DbSet<I2cDataEvent> I2cDataEvents => Set<I2cDataEvent>();
 
+    public DbSet<CommandRequest> CommandRequests => Set<CommandRequest>();
+    public DbSet<CommandStatusHistory> CommandStatusHistories => Set<CommandStatusHistory>();
+
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -957,6 +965,167 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.I2cConfigSnapshots)
                 .HasForeignKey(x => x.TagId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<BleAdvertisementEvent>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.HasIndex(x => x.TagId);
+            entity.HasIndex(x => x.AnchorId);
+            entity.HasIndex(x => x.EventTimestamp);
+            entity.HasIndex(x => new { x.TagId, x.EventTimestamp });
+
+            entity.HasOne(x => x.RawEvent)
+                .WithMany()
+                .HasForeignKey(x => x.RawEventId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Anchor)
+                .WithMany(x => x.BleAdvertisementEvents)
+                .HasForeignKey(x => x.AnchorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Tag)
+                .WithMany(x => x.BleAdvertisementEvents)
+                .HasForeignKey(x => x.TagId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<DioValueEvent>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.HasIndex(x => x.TagId);
+            entity.HasIndex(x => x.Pin);
+            entity.HasIndex(x => x.EventTimestamp);
+            entity.HasIndex(x => new { x.TagId, x.Pin, x.EventTimestamp });
+
+            entity.HasOne(x => x.RawEvent)
+                .WithMany()
+                .HasForeignKey(x => x.RawEventId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Tag)
+                .WithMany(x => x.DioValueEvents)
+                .HasForeignKey(x => x.TagId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TagDioValueSnapshot>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.HasIndex(x => new { x.TagId, x.Pin }).IsUnique();
+            entity.HasIndex(x => x.LastReportedAt);
+
+            entity.HasOne(x => x.Tag)
+                .WithMany(x => x.DioValueSnapshots)
+                .HasForeignKey(x => x.TagId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<I2cDataEvent>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Direction).HasConversion<string>().HasMaxLength(50);
+            entity.Property(x => x.DataJson).IsRequired().HasColumnType("jsonb");
+
+            entity.HasIndex(x => x.TagId);
+            entity.HasIndex(x => x.EventTimestamp);
+            entity.HasIndex(x => new { x.TagId, x.EventTimestamp });
+
+            entity.HasOne(x => x.RawEvent)
+                .WithMany()
+                .HasForeignKey(x => x.RawEventId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Tag)
+                .WithMany(x => x.I2cDataEvents)
+                .HasForeignKey(x => x.TagId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CommandRequest>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.CommandType).HasConversion<string>().HasMaxLength(100);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
+            entity.Property(x => x.TargetType).HasConversion<string>().HasMaxLength(50);
+            entity.Property(x => x.PayloadJson).IsRequired().HasColumnType("jsonb");
+
+            entity.Property(x => x.ExternalCorrelationId).HasMaxLength(200);
+            entity.Property(x => x.CancelReason).HasMaxLength(1000);
+            entity.Property(x => x.FailureReason).HasMaxLength(2000);
+            entity.Property(x => x.ResponseJson).HasColumnType("jsonb");
+
+            entity.HasIndex(x => x.CommandType);
+            entity.HasIndex(x => x.Status);
+            entity.HasIndex(x => x.TargetType);
+            entity.HasIndex(x => x.TagId);
+            entity.HasIndex(x => x.AnchorId);
+            entity.HasIndex(x => x.RequestedByUserId);
+            entity.HasIndex(x => x.RequestedAt);
+            entity.HasIndex(x => new { x.Status, x.RequestedAt });
+
+            entity.HasOne(x => x.Tag)
+                .WithMany(x => x.CommandRequests)
+                .HasForeignKey(x => x.TagId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.Anchor)
+                .WithMany(x => x.CommandRequests)
+                .HasForeignKey(x => x.AnchorId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.RequestedByUser)
+                .WithMany(x => x.RequestedCommands)
+                .HasForeignKey(x => x.RequestedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CommandStatusHistory>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.OldStatus).HasConversion<string>().HasMaxLength(50);
+            entity.Property(x => x.NewStatus).HasConversion<string>().HasMaxLength(50);
+            entity.Property(x => x.Note).HasMaxLength(1000);
+            entity.Property(x => x.DataJson).HasColumnType("jsonb");
+
+            entity.HasIndex(x => x.CommandRequestId);
+            entity.HasIndex(x => x.ChangedAt);
+            entity.HasIndex(x => new { x.CommandRequestId, x.ChangedAt });
+
+            entity.HasOne(x => x.CommandRequest)
+                .WithMany(x => x.StatusHistory)
+                .HasForeignKey(x => x.CommandRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.ChangedByUser)
+                .WithMany(x => x.CommandStatusChanges)
+                .HasForeignKey(x => x.ChangedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<OutboxMessage>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.AggregateType).IsRequired().HasMaxLength(200);
+            entity.Property(x => x.MessageType).IsRequired().HasMaxLength(200);
+            entity.Property(x => x.PayloadJson).IsRequired().HasColumnType("jsonb");
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
+            entity.Property(x => x.FailureReason).HasMaxLength(2000);
+
+            entity.HasIndex(x => x.Status);
+            entity.HasIndex(x => x.AggregateType);
+            entity.HasIndex(x => x.MessageType);
+            entity.HasIndex(x => x.AggregateId);
+            entity.HasIndex(x => x.OccurredAt);
+            entity.HasIndex(x => new { x.Status, x.OccurredAt });
         });
 
         // ==== Global Soft-Delete Filter ====
