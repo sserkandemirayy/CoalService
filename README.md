@@ -156,29 +156,6 @@ Examples:
 
 ---
 
-# Project Structure
-
-```text
-src/
- ├── Api/
- ├── Application/
- ├── Domain/
- └── Infrastructure/
-```
-
-### Api
-Controllers, middleware, authentication, authorization and swagger configuration.
-
-### Application
-CQRS handlers, DTOs, validators, commands and queries.
-
-### Domain
-Core business entities, abstractions and business rules.
-
-### Infrastructure
-Persistence layer, repositories, database context and external integrations.
-
----
 
 # Event Processing Flow
 
@@ -268,36 +245,4 @@ Realtime updates include:
 
 ---
 
-# Development Notes
 
-The project is designed with separation of concerns in mind.
-
-Key architectural goals:
-
-- Maintainable codebase
-- Clear domain boundaries
-- Scalable event processing
-- Easy integration with external hardware systems
-- Realtime operational visibility
-
-The system is intentionally structured to support future distributed processing and microservice expansion if needed.
-
----
-
-# Future Improvements
-
-Planned improvements include:
-
-- Redis caching
-- Kafka / RabbitMQ integration
-- Geofencing engine
-- Advanced analytics
-- Multi-tenant support
-- Mobile notifications
-- Device firmware management
-
----
-
-# License
-
-Private enterprise project.
