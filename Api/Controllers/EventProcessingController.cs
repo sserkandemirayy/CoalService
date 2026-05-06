@@ -23,6 +23,7 @@ public class EventProcessingController : BaseController
     // PROCESS EVENT COMMANDS
     // =========================================================
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("location-calculated")]
     public async Task<IActionResult> ProcessLocationCalculated(
         [FromBody] LocationCalculatedPayloadDto payload,
@@ -35,6 +36,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("emergency-button-pressed")]
     public async Task<IActionResult> ProcessEmergencyButtonPressed(
         [FromBody] EmergencyButtonPressedPayloadDto payload,
@@ -47,6 +49,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("proximity-alert-raised")]
     public async Task<IActionResult> ProcessProximityAlertRaised(
         [FromBody] ProximityAlertRaisedPayloadDto payload,
@@ -59,6 +62,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("imu-event-detected")]
     public async Task<IActionResult> ProcessImuEventDetected(
         [FromBody] ImuEventDetectedPayloadDto payload,
@@ -71,6 +75,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("battery-level-reported")]
     public async Task<IActionResult> ProcessBatteryLevelReported(
         [FromBody] BatteryLevelReportedPayloadDto payload,
@@ -83,6 +88,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("anchor-heartbeat-received")]
     public async Task<IActionResult> ProcessAnchorHeartbeatReceived(
         [FromBody] AnchorHeartbeatReceivedPayloadDto payload,
@@ -97,6 +103,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("anchor-status-changed")]
     public async Task<IActionResult> ProcessAnchorStatusChanged(
         [FromBody] AnchorStatusChangedPayloadDto payload,
@@ -116,6 +123,7 @@ public class EventProcessingController : BaseController
     // EVENT QUERIES
     // =========================================================
 
+    [Authorize(Policy = "ViewRawEvents")]
     [HttpGet("raw/{id:guid}")]
     public async Task<IActionResult> GetRawEventById(Guid id, CancellationToken ct)
     {
@@ -123,6 +131,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewRawEvents")]
     [HttpGet("raw")]
     public async Task<IActionResult> GetRawEvents(
         [FromQuery] string? eventType,
@@ -145,6 +154,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("locations/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetLocationEventsByTagId(
         Guid tagId,
@@ -158,6 +168,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("battery/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetBatteryEventsByTagId(
         Guid tagId,
@@ -171,6 +182,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("imu/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetImuEventsByTagId(
         Guid tagId,
@@ -184,6 +196,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("proximity/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetProximityEventsByTagId(
         Guid tagId,
@@ -197,6 +210,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("emergency/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetEmergencyEventsByTagId(
         Guid tagId,
@@ -210,6 +224,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("anchor-heartbeats/by-anchor/{anchorId:guid}")]
     public async Task<IActionResult> GetAnchorHeartbeatEventsByAnchorId(
         Guid anchorId,
@@ -223,6 +238,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("anchor-status/by-anchor/{anchorId:guid}")]
     public async Task<IActionResult> GetAnchorStatusEventsByAnchorId(
         Guid anchorId,
@@ -237,7 +253,7 @@ public class EventProcessingController : BaseController
     }
 
     /////////////-------/////////////
-
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("anchor-health-reported")]
     public async Task<IActionResult> ProcessAnchorHealthReported(
     [FromBody] AnchorHealthReportedPayloadDto payload,
@@ -250,6 +266,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("tag-data-received")]
     public async Task<IActionResult> ProcessTagDataReceived(
         [FromBody] TagDataReceivedPayloadDto payload,
@@ -262,6 +279,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("uwb-ranging-completed")]
     public async Task<IActionResult> ProcessUwbRangingCompleted(
         [FromBody] UwbRangingCompletedPayloadDto payload,
@@ -274,6 +292,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("uwb-tag-to-tag-ranging-completed")]
     public async Task<IActionResult> ProcessUwbTagToTagRangingCompleted(
         [FromBody] UwbTagToTagRangingCompletedPayloadDto payload,
@@ -286,6 +305,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("anchor-health/by-anchor/{anchorId:guid}")]
     public async Task<IActionResult> GetAnchorHealthEventsByAnchorId(
         Guid anchorId,
@@ -299,6 +319,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("tag-data/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetTagDataEventsByTagId(
         Guid tagId,
@@ -312,6 +333,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("uwb-ranging/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetUwbRangingEventsByTagId(
         Guid tagId,
@@ -325,6 +347,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("uwb-ranging/by-anchor/{anchorId:guid}")]
     public async Task<IActionResult> GetUwbRangingEventsByAnchorId(
         Guid anchorId,
@@ -338,6 +361,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("uwb-tag-to-tag-ranging/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetUwbTagToTagRangingEventsByTagId(
         Guid tagId,
@@ -351,6 +375,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("anchor-config-reported")]
     public async Task<IActionResult> ProcessAnchorConfigReported(
     [FromBody] AnchorConfigReportedPayloadDto payload,
@@ -363,6 +388,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("ble-config-reported")]
     public async Task<IActionResult> ProcessBleConfigReported(
         [FromBody] BleConfigReportedPayloadDto payload,
@@ -375,6 +401,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("uwb-config-reported")]
     public async Task<IActionResult> ProcessUwbConfigReported(
         [FromBody] UwbConfigReportedPayloadDto payload,
@@ -387,6 +414,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("dio-config-reported")]
     public async Task<IActionResult> ProcessDioConfigReported(
         [FromBody] DioConfigReportedPayloadDto payload,
@@ -399,6 +427,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("i2c-config-reported")]
     public async Task<IActionResult> ProcessI2cConfigReported(
         [FromBody] I2cConfigReportedPayloadDto payload,
@@ -411,6 +440,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewConfigSnapshots")]
     [HttpGet("anchor-config/by-anchor/{anchorId:guid}")]
     public async Task<IActionResult> GetAnchorConfigEventsByAnchorId(
         Guid anchorId,
@@ -424,6 +454,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewConfigSnapshots")]
     [HttpGet("anchor-config/current/{anchorId:guid}")]
     public async Task<IActionResult> GetCurrentAnchorConfigByAnchorId(Guid anchorId, CancellationToken ct = default)
     {
@@ -431,6 +462,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewConfigSnapshots")]
     [HttpGet("ble-config/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetBleConfigEventsByTagId(
         Guid tagId,
@@ -444,6 +476,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewConfigSnapshots")]
     [HttpGet("ble-config/current/{tagId:guid}")]
     public async Task<IActionResult> GetCurrentBleConfigByTagId(Guid tagId, CancellationToken ct = default)
     {
@@ -451,6 +484,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewConfigSnapshots")]
     [HttpGet("uwb-config/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetUwbConfigEventsByTagId(
         Guid tagId,
@@ -464,6 +498,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewConfigSnapshots")]
     [HttpGet("uwb-config/current/{tagId:guid}")]
     public async Task<IActionResult> GetCurrentUwbConfigByTagId(Guid tagId, CancellationToken ct = default)
     {
@@ -471,6 +506,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewConfigSnapshots")]
     [HttpGet("dio-config/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetDioConfigEventsByTagId(
         Guid tagId,
@@ -484,6 +520,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewConfigSnapshots")]
     [HttpGet("dio-config/current/{tagId:guid}")]
     public async Task<IActionResult> GetCurrentDioConfigsByTagId(Guid tagId, CancellationToken ct = default)
     {
@@ -491,6 +528,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewConfigSnapshots")]
     [HttpGet("i2c-config/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetI2cConfigEventsByTagId(
         Guid tagId,
@@ -504,6 +542,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewConfigSnapshots")]
     [HttpGet("i2c-config/current/{tagId:guid}")]
     public async Task<IActionResult> GetCurrentI2cConfigByTagId(Guid tagId, CancellationToken ct = default)
     {
@@ -511,6 +550,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("ble-advertisement-received")]
     public async Task<IActionResult> ProcessBleAdvertisementReceived(
     [FromBody] BleAdvertisementReceivedPayloadDto payload,
@@ -523,6 +563,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("dio-value-reported")]
     public async Task<IActionResult> ProcessDioValueReported(
         [FromBody] DioValueReportedPayloadDto payload,
@@ -535,6 +576,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("i2c-data-received")]
     public async Task<IActionResult> ProcessI2cDataReceived(
         [FromBody] I2cDataReceivedPayloadDto payload,
@@ -547,6 +589,7 @@ public class EventProcessingController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("ble-advertisements/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetBleAdvertisementEventsByTagId(
         Guid tagId,
@@ -560,6 +603,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("ble-advertisements/by-anchor/{anchorId:guid}")]
     public async Task<IActionResult> GetBleAdvertisementEventsByAnchorId(
         Guid anchorId,
@@ -573,6 +617,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("dio-values/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetDioValueEventsByTagId(
         Guid tagId,
@@ -586,6 +631,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewConfigSnapshots")]
     [HttpGet("dio-values/current/{tagId:guid}")]
     public async Task<IActionResult> GetCurrentDioValuesByTagId(
         Guid tagId,
@@ -596,6 +642,7 @@ public class EventProcessingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewEvents")]
     [HttpGet("i2c-data/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetI2cDataEventsByTagId(
         Guid tagId,

@@ -14,13 +14,14 @@ public class SettingsController : BaseController
     public SettingsController(ISender mediator) => _mediator = mediator;
 
     [HttpGet("system")]
-    [Authorize(Roles = "admin")]
+    [Authorize(Policy = "ManageSettings")]
     public async Task<IActionResult> GetSystemSettings(CancellationToken ct)
     {
         var settings = await _mediator.Send(new GetSettingsQuery(SettingScope.System, null), ct);
         return Ok(settings);
     }
 
+    [Authorize]
     [HttpGet("user")]
     public async Task<IActionResult> GetUserSettings(CancellationToken ct)
     {
@@ -28,6 +29,7 @@ public class SettingsController : BaseController
         return Ok(settings);
     }
 
+    [Authorize(Policy = "ManageSettings")]
     [HttpPost]
     public async Task<IActionResult> UpsertSetting([FromBody] UpsertSettingCommand cmd, CancellationToken ct)
     {

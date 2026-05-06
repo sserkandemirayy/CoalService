@@ -49,8 +49,8 @@ public class UserController : BaseController
 
         // === Eğer PII görüntüleniyorsa audit at ===
         var canViewPII = dto.Permissions?.Contains("view_pii") == true
-                         || User.IsInRole("admin")
-                         || User.HasClaim("permission", "view_pii");
+                 || User.IsInRole("super_admin")
+                 || User.HasClaim("permission", "view_pii");
 
         if (canViewPII)
         {
@@ -111,7 +111,7 @@ public class UserController : BaseController
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserCommand cmd, CancellationToken ct)
     {
-        if (id != cmd.Id && !User.IsInRole("admin"))
+        if (id != CurrentUserId && !User.HasClaim("permission", "manage_users"))
             return Forbid();
 
         var result = await _mediator.Send(cmd with { Id = id, PerformedByUserId = CurrentUserId }, ct);
@@ -123,7 +123,7 @@ public class UserController : BaseController
     [HttpPost("{id}/change-password")]
     public async Task<IActionResult> ChangePassword(Guid id, [FromBody] ChangePasswordCommand cmd, CancellationToken ct)
     {
-        if (id != cmd.UserId && !User.IsInRole("admin"))
+        if (id != CurrentUserId && !User.HasClaim("permission", "manage_users"))
             return Forbid();
 
         var result = await _mediator.Send(cmd with { UserId = id, PerformedByUserId = CurrentUserId }, ct);
@@ -166,7 +166,7 @@ public class UserController : BaseController
     [HttpGet("{id}/sessions")]
     public async Task<IActionResult> GetSessions(Guid id, CancellationToken ct)
     {
-        if (id != CurrentUserId && !User.IsInRole("admin"))
+        if (id != CurrentUserId && !User.HasClaim("permission", "manage_users"))
             return Forbid();
 
         var sessions = await _mediator.Send(new GetUserSessionsQuery(id), ct);
@@ -177,7 +177,7 @@ public class UserController : BaseController
     [HttpDelete("{id}/sessions/{sessionId}")]
     public async Task<IActionResult> RevokeSession(Guid id, Guid sessionId, CancellationToken ct)
     {
-        if (id != CurrentUserId && !User.IsInRole("admin"))
+        if (id != CurrentUserId && !User.HasClaim("permission", "manage_users"))
             return Forbid();
 
         var res = await _mediator.Send(new RevokeSessionCommand(id, sessionId), ct);
@@ -188,7 +188,7 @@ public class UserController : BaseController
     [HttpDelete("{id}/sessions")]
     public async Task<IActionResult> RevokeAllSessions(Guid id, CancellationToken ct)
     {
-        if (id != CurrentUserId && !User.IsInRole("admin"))
+        if (id != CurrentUserId && !User.HasClaim("permission", "manage_users"))
             return Forbid();
 
         var res = await _mediator.Send(new RevokeAllSessionsCommand(id), ct);

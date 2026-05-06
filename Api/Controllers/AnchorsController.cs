@@ -18,6 +18,7 @@ public class AnchorsController : BaseController
         _mediator = mediator;
     }
 
+    [Authorize(Policy = "ViewDevices")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
@@ -25,6 +26,7 @@ public class AnchorsController : BaseController
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewDevices")]
     [HttpGet]
     public async Task<IActionResult> GetList(
         [FromQuery] string? search,
@@ -41,6 +43,7 @@ public class AnchorsController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageAnchors")]
     [HttpPost]
     public async Task<IActionResult> Create(
         [FromBody] CreateAnchorRequest request,
@@ -63,6 +66,7 @@ public class AnchorsController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageAnchors")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(
         Guid id,
@@ -86,6 +90,7 @@ public class AnchorsController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageAnchors")]
     [HttpPost("{id:guid}/activate")]
     public async Task<IActionResult> Activate(Guid id, CancellationToken ct)
     {
@@ -96,6 +101,7 @@ public class AnchorsController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageAnchors")]
     [HttpPost("{id:guid}/deactivate")]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken ct)
     {

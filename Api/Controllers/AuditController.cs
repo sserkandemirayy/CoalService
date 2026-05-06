@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "admin")]
+[Authorize(Policy = "ManageSettings")]
 public class AuditController : BaseController
 {
     private readonly IAuditLogRepository _repo;

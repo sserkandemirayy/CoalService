@@ -19,6 +19,7 @@ public class TagsController : BaseController
         _mediator = mediator;
     }
 
+    [Authorize(Policy = "ViewDevices")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
@@ -26,6 +27,7 @@ public class TagsController : BaseController
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewDevices")]
     [HttpGet]
     public async Task<IActionResult> GetList(
         [FromQuery] string? search,
@@ -41,6 +43,7 @@ public class TagsController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageTags")]
     [HttpPost]
     public async Task<IActionResult> Create(
         [FromBody] CreateTagRequest request,
@@ -62,6 +65,7 @@ public class TagsController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageTags")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(
         Guid id,
@@ -84,6 +88,7 @@ public class TagsController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageTags")]
     [HttpPost("{id:guid}/activate")]
     public async Task<IActionResult> Activate(Guid id, CancellationToken ct)
     {
@@ -94,6 +99,7 @@ public class TagsController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageTags")]
     [HttpPost("{id:guid}/deactivate")]
     public async Task<IActionResult> Deactivate(Guid id, CancellationToken ct)
     {

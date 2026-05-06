@@ -20,6 +20,7 @@ public class CommandManagementController : BaseController
         _mediator = mediator;
     }
 
+    [Authorize(Policy = "CreateCommands")]
     [HttpPost("request-config")]
     public async Task<IActionResult> CreateRequestConfig(
         [FromBody] RequestConfigCommandPayloadDto payload,
@@ -29,6 +30,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "CreateCommands")]
     [HttpPost("reset-device")]
     public async Task<IActionResult> CreateResetDevice(
         [FromBody] ResetDeviceCommandPayloadDto payload,
@@ -38,6 +40,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "CreateCommands")]
     [HttpPost("set-anchor-config")]
     public async Task<IActionResult> CreateSetAnchorConfig(
         [FromBody] SetAnchorConfigCommandPayloadDto payload,
@@ -47,6 +50,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "CreateCommands")]
     [HttpPost("set-ble-config")]
     public async Task<IActionResult> CreateSetBleConfig(
         [FromBody] SetBleConfigCommandPayloadDto payload,
@@ -56,6 +60,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "CreateCommands")]
     [HttpPost("set-dio-config")]
     public async Task<IActionResult> CreateSetDioConfig(
         [FromBody] SetDioConfigCommandPayloadDto payload,
@@ -65,6 +70,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "CreateCommands")]
     [HttpPost("set-dio-value")]
     public async Task<IActionResult> CreateSetDioValue(
         [FromBody] SetDioValueCommandPayloadDto payload,
@@ -74,6 +80,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "CreateCommands")]
     [HttpPost("set-i2c-config")]
     public async Task<IActionResult> CreateSetI2cConfig(
         [FromBody] SetI2cConfigCommandPayloadDto payload,
@@ -83,6 +90,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "CreateCommands")]
     [HttpPost("set-proximity-config")]
     public async Task<IActionResult> CreateSetProximityConfig(
         [FromBody] SetProximityConfigCommandPayloadDto payload,
@@ -92,6 +100,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "CreateCommands")]
     [HttpPost("set-tag-alert")]
     public async Task<IActionResult> CreateSetTagAlert(
         [FromBody] SetTagAlertCommandPayloadDto payload,
@@ -101,6 +110,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "CreateCommands")]
     [HttpPost("set-uwb-config")]
     public async Task<IActionResult> CreateSetUwbConfig(
         [FromBody] SetUwbConfigCommandPayloadDto payload,
@@ -110,6 +120,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "CreateCommands")]
     [HttpPost("write-i2c-data")]
     public async Task<IActionResult> CreateWriteI2cData(
         [FromBody] WriteI2cDataCommandPayloadDto payload,
@@ -119,6 +130,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { id = result.Value }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "QueueCommands")]
     [HttpPost("{id:guid}/queue")]
     public async Task<IActionResult> QueueCommand(Guid id, CancellationToken ct)
     {
@@ -128,6 +140,7 @@ public class CommandManagementController : BaseController
 
     public sealed record CancelCommandBody(string? Reason);
 
+    [Authorize(Policy = "CancelCommands")]
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> CancelCommand(Guid id, [FromBody] CancelCommandBody body, CancellationToken ct)
     {
@@ -135,6 +148,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { status = "cancelled" }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "RetryCommands")]
     [HttpPost("{id:guid}/retry")]
     public async Task<IActionResult> RetryCommand(Guid id, CancellationToken ct)
     {
@@ -142,6 +156,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(new { status = "pending" }) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewCommands")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
@@ -149,6 +164,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewCommands")]
     [HttpGet]
     public async Task<IActionResult> GetList(
         [FromQuery] string? commandType,
@@ -175,6 +191,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewCommands")]
     [HttpGet("by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetByTagId(
         Guid tagId,
@@ -186,6 +203,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewCommands")]
     [HttpGet("by-anchor/{anchorId:guid}")]
     public async Task<IActionResult> GetByAnchorId(
         Guid anchorId,
@@ -197,6 +215,7 @@ public class CommandManagementController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewCommands")]
     [HttpGet("{id:guid}/history")]
     public async Task<IActionResult> GetHistory(Guid id, CancellationToken ct)
     {

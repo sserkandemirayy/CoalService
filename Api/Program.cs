@@ -3,7 +3,6 @@ using Api.Security;
 using Api.Services;
 using Application.Common.Behaviors;
 using Application.Common.Options;
-using Application.Security.Requirements;
 using Domain.Abstractions;
 using Domain.Entities;
 using FluentValidation;
@@ -116,7 +115,7 @@ builder.Services.AddScoped<ICommandStatusHistoryRepository, CommandStatusHistory
 builder.Services.AddScoped<IOutboxMessageRepository, OutboxMessageRepository>();
 builder.Services.AddScoped<IntegrationApiKeyFilter>();
 
-// MediatR + Validation
+// MediatR - Validation
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(Application.Auth.Commands.RegisterUserCommand).Assembly);
@@ -155,58 +154,126 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Authorization Policies
 builder.Services.AddAuthorization(options =>
 {
-    // Özel requirement örneği
-    options.AddPolicy("AccessOwnPatientData", p => p.Requirements.Add(new SameUserRequirement()));
 
     // Yönetim
     options.AddPolicy("ManageUsers", p => p.RequireClaim("permission", "manage_users"));
     options.AddPolicy("ManageRoles", p => p.RequireClaim("permission", "manage_roles"));
     options.AddPolicy("ManagePermissions", p => p.RequireClaim("permission", "manage_permissions"));
 
-    // Raporlama
-    options.AddPolicy("ViewReports", p => p.RequireClaim("permission", "view_reports"));
+    // =========================
+    // ===== MANAGEMENT ========
+    // =========================
 
-    // Hasta verileri
-    options.AddPolicy("AccessPatientData", p => p.RequireClaim("permission", "access_patient_data"));
-    options.AddPolicy("EditPatientData", p => p.RequireClaim("permission", "edit_patient_data"));
-    options.AddPolicy("DeletePatientData", p => p.RequireClaim("permission", "delete_patient_data"));
-    options.AddPolicy("ManagePatients", p => p.RequireClaim("permission", "manage_patients"));
+    options.AddPolicy("ManageUsers",
+        p => p.RequireClaim("permission", "manage_users"));
 
-    // Randevu
-    options.AddPolicy("CreateAppointment", p => p.RequireClaim("permission", "create_appointment"));
+    options.AddPolicy("ManageRoles",
+        p => p.RequireClaim("permission", "manage_roles"));
 
-    // Şirket / Şube
-    options.AddPolicy("ManageCompanies", p => p.RequireClaim("permission", "manage_companies"));
-    options.AddPolicy("ManageBranches", p => p.RequireClaim("permission", "manage_branches"));
+    options.AddPolicy("ManagePermissions",
+        p => p.RequireClaim("permission", "manage_permissions"));
 
-    // Servisler
-    options.AddPolicy("ManageServices", p => p.RequireClaim("permission", "manage_services"));
+    options.AddPolicy("ManageSettings",
+        p => p.RequireClaim("permission", "manage_settings"));
 
-    // Ödemeler
-    options.AddPolicy("ManagePayments", p => p.RequireClaim("permission", "manage_payments"));
-    options.AddPolicy("ViewPayments", p => p.RequireClaim("permission", "view_payments"));
+    options.AddPolicy("ManageCompanies",
+        p => p.RequireClaim("permission", "manage_companies"));
 
-    // Giderler
-    options.AddPolicy("ManageExpenses", p => p.RequireClaim("permission", "manage_expenses"));
-    options.AddPolicy("ViewExpenses", p => p.RequireClaim("permission", "view_expenses"));
-
-    // Ürün / Depo
-    options.AddPolicy("ManageProducts", p => p.RequireClaim("permission", "manage_products"));
-    options.AddPolicy("ManageWarehouses", p => p.RequireClaim("permission", "manage_warehouses"));
-
-    // Performans
-    options.AddPolicy("ManagePerformance", p => p.RequireClaim("permission", "manage_performance"));
+    options.AddPolicy("ManageBranches",
+        p => p.RequireClaim("permission", "manage_branches"));
 
     // =========================
-    // ===== ROOM POLICIES =====
+    // ===== DEVICE MGMT =======
     // =========================
-    options.AddPolicy("room:view", p => p.RequireClaim("permission", "room:view"));
-    options.AddPolicy("room:manage", p => p.RequireClaim("permission", "room:manage"));
-    options.AddPolicy("room:assignEquipment", p => p.RequireClaim("permission", "room:assignEquipment"));
-    options.AddPolicy("room:assignStaff", p => p.RequireClaim("permission", "room:assignStaff"));
-    options.AddPolicy("room:maintain", p => p.RequireClaim("permission", "room:maintain"));
 
-    options.AddPolicy("ManageCampaigns", p => p.RequireClaim("permission", "manage_campaigns"));
+    options.AddPolicy("ViewDevices",
+        p => p.RequireClaim("permission", "view_devices"));
+
+    options.AddPolicy("ManageTags",
+        p => p.RequireClaim("permission", "manage_tags"));
+
+    options.AddPolicy("ManageAnchors",
+        p => p.RequireClaim("permission", "manage_anchors"));
+
+    options.AddPolicy("AssignTags",
+        p => p.RequireClaim("permission", "assign_tags"));
+
+    options.AddPolicy("ManageDeviceConfigs",
+        p => p.RequireClaim("permission", "manage_device_configs"));
+
+    options.AddPolicy("ViewConfigSnapshots",
+        p => p.RequireClaim("permission", "view_config_snapshots"));
+
+    // =========================
+    // ===== TRACKING ==========
+    // =========================
+
+    options.AddPolicy("ViewDashboard",
+        p => p.RequireClaim("permission", "view_dashboard"));
+
+    options.AddPolicy("ViewTracking",
+        p => p.RequireClaim("permission", "view_tracking"));
+
+    options.AddPolicy("ViewTrackingHistory",
+        p => p.RequireClaim("permission", "view_tracking_history"));
+
+    // =========================
+    // ===== EVENTS ============
+    // =========================
+
+    options.AddPolicy("ViewEvents",
+        p => p.RequireClaim("permission", "view_events"));
+
+    options.AddPolicy("ViewRawEvents",
+        p => p.RequireClaim("permission", "view_raw_events"));
+
+    // =========================
+    // ===== ALARMS ============
+    // =========================
+
+    options.AddPolicy("ViewAlarms",
+        p => p.RequireClaim("permission", "view_alarms"));
+
+    options.AddPolicy("AcknowledgeAlarms",
+        p => p.RequireClaim("permission", "acknowledge_alarms"));
+
+    options.AddPolicy("ManageAlarms",
+        p => p.RequireClaim("permission", "manage_alarms"));
+
+    // =========================
+    // ===== COMMANDS ==========
+    // =========================
+
+    options.AddPolicy("ViewCommands",
+        p => p.RequireClaim("permission", "view_commands"));
+
+    options.AddPolicy("CreateCommands",
+        p => p.RequireClaim("permission", "create_commands"));
+
+    options.AddPolicy("QueueCommands",
+        p => p.RequireClaim("permission", "queue_commands"));
+
+    options.AddPolicy("CancelCommands",
+        p => p.RequireClaim("permission", "cancel_commands"));
+
+    options.AddPolicy("RetryCommands",
+        p => p.RequireClaim("permission", "retry_commands"));
+
+    // =========================
+    // ===== REPORTING / PII ===
+    // =========================
+
+    options.AddPolicy("ViewReports",
+        p => p.RequireClaim("permission", "view_reports"));
+
+    options.AddPolicy("ViewPii",
+        p => p.RequireClaim("permission", "view_pii"));
+
+    options.AddPolicy("EditPii",
+        p => p.RequireClaim("permission", "edit_pii"));
+
+    options.AddPolicy("ExportPii",
+        p => p.RequireClaim("permission", "export_pii"));
 });
 
 // --- CORS POLICY ---
@@ -235,7 +302,6 @@ builder.Services.AddSwaggerGen(c =>
 
     c.CustomSchemaIds(type => type.FullName?.Replace("+", "."));
 
-    // JWT Bearer için security scheme
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",

@@ -18,6 +18,7 @@ public class TrackingController : BaseController
         _mediator = mediator;
     }
 
+    [Authorize(Policy = "ViewTracking")]
     [HttpGet("current-locations")]
     public async Task<IActionResult> GetCurrentLocations(
         [FromQuery] Guid? userId,
@@ -28,6 +29,7 @@ public class TrackingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewTracking")]
     [HttpGet("current-location/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetCurrentLocationByTagId(Guid tagId, CancellationToken ct)
     {
@@ -35,6 +37,7 @@ public class TrackingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewTrackingHistory")]
     [HttpGet("history/by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetTagLocationHistory(
         Guid tagId,
@@ -50,6 +53,7 @@ public class TrackingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewDashboard")]
     [HttpGet("dashboard")]
     public async Task<IActionResult> GetDashboard(CancellationToken ct)
     {
@@ -57,6 +61,7 @@ public class TrackingController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageDeviceConfigs")]
     [HttpPost("rebuild-current-location/{tagId:guid}")]
     public async Task<IActionResult> RebuildCurrentLocation(Guid tagId, CancellationToken ct)
     {

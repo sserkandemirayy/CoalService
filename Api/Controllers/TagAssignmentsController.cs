@@ -18,6 +18,7 @@ public class TagAssignmentsController : BaseController
         _mediator = mediator;
     }
 
+    [Authorize(Policy = "ViewDevices")]
     [HttpGet("by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetByTagId(Guid tagId, CancellationToken ct)
     {
@@ -25,6 +26,7 @@ public class TagAssignmentsController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewDevices")]
     [HttpGet("by-user/{userId:guid}")]
     public async Task<IActionResult> GetByUserId(Guid userId, CancellationToken ct)
     {
@@ -32,6 +34,7 @@ public class TagAssignmentsController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "AssignTags")]
     [HttpPost]
     public async Task<IActionResult> Assign(
         [FromBody] AssignTagRequest request,
@@ -50,6 +53,7 @@ public class TagAssignmentsController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "AssignTags")]
     [HttpPost("unassign")]
     public async Task<IActionResult> Unassign(
         [FromBody] UnassignTagRequest request,

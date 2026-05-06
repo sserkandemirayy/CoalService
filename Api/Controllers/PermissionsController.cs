@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Api.Controllers;
 
 [Route("api/[controller]")]
-[Authorize(Policy = "ManageRoles")]
+[Authorize(Policy = "ManagePermissions")]
 public class PermissionsController : BaseController
 {
     private readonly IPermissionRepository _permissionRepository;

@@ -18,6 +18,7 @@ public class AlarmsController : BaseController
         _mediator = mediator;
     }
 
+    [Authorize(Policy = "ViewAlarms")]
     [HttpGet("{alarmId:guid}")]
     public async Task<IActionResult> GetById(Guid alarmId, CancellationToken ct)
     {
@@ -25,6 +26,7 @@ public class AlarmsController : BaseController
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewAlarms")]
     [HttpGet("active")]
     public async Task<IActionResult> GetActive(CancellationToken ct)
     {
@@ -32,6 +34,7 @@ public class AlarmsController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewAlarms")]
     [HttpGet("by-tag/{tagId:guid}")]
     public async Task<IActionResult> GetByTag(Guid tagId, CancellationToken ct)
     {
@@ -39,6 +42,7 @@ public class AlarmsController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ViewAlarms")]
     [HttpGet("by-anchor/{anchorId:guid}")]
     public async Task<IActionResult> GetByAnchor(Guid anchorId, CancellationToken ct)
     {
@@ -46,6 +50,7 @@ public class AlarmsController : BaseController
         return result.IsSuccess ? Ok(result.Value) : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "AcknowledgeAlarms")]
     [HttpPost("{alarmId:guid}/acknowledge")]
     public async Task<IActionResult> Acknowledge(Guid alarmId, CancellationToken ct)
     {
@@ -57,6 +62,7 @@ public class AlarmsController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageAlarms")]
     [HttpPost("{alarmId:guid}/resolve")]
     public async Task<IActionResult> Resolve(Guid alarmId, CancellationToken ct)
     {
@@ -68,6 +74,7 @@ public class AlarmsController : BaseController
             : BadRequest(new { error = result.Error });
     }
 
+    [Authorize(Policy = "ManageAlarms")]
     [HttpPost("{alarmId:guid}/close")]
     public async Task<IActionResult> Close(Guid alarmId, CancellationToken ct)
     {
