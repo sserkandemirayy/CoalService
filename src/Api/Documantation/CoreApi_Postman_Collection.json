@@ -1,0 +1,5383 @@
+{
+	"info": {
+		"_postman_id": "7b3aa7e4-2d28-43b4-b715-faec5852d53e",
+		"name": "RTLS Core API - Complete Working Collection",
+		"description": "RTLS Core API için uçtan uca Postman Collection.\n\nKullanım sırası:\n1. Environment dosyasını import et.\n2. baseUrl değerini kendi API adresine göre düzenle.\n3. 00 - Auth / Setup > Login çalıştır.\n4. 01 - Bootstrap Seed IDs klasörünü sırayla çalıştır.\n5. Sonra Device, Tracking, Event, Alarm, Command ve Integration klasörlerini kullan.\n\nBu collection seed data varsayımıyla hazırlanmıştır:\n- tag-person-001\n- tag-person-002\n- tag-vehicle-001\n- tag-asset-001\n- anchor-001\n- anchor-004\n- anchor-005\n- anchor-006\n\nNotlar:\n- Normal endpointler Bearer token kullanır.\n- Integration endpointleri X-Integration-Api-Key header kullanır.\n- Event POST requestlerinde event id ve timestamp otomatik üretilir.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "15357053"
+	},
+	"item": [
+		{
+			"name": "00 - Auth / Setup",
+			"item": [
+				{
+					"name": "Login - save JWT token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Login successful\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"const json = pm.response.json();",
+									"const accessToken = json.accessToken || json.token || json.jwt || (json.value && (json.value.accessToken || json.value.token));",
+									"const refreshToken = json.refreshToken || (json.value && json.value.refreshToken);",
+									"if (accessToken) {",
+									"  pm.environment.set(\"accessToken\", accessToken);",
+									"  console.log(\"accessToken saved\");",
+									"} else {",
+									"  console.warn(\"accessToken not found in response. Check AuthResponse shape.\");",
+									"}",
+									"if (refreshToken) pm.environment.set(\"refreshToken\", refreshToken);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/Auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Auth",
+								"login"
+							]
+						},
+						"description": "JWT token alır. Response içindeki accessToken otomatik environment'a kaydedilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Login successful\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"const json = pm.response.json();",
+									"const accessToken = json.accessToken || json.token || json.jwt || (json.value && (json.value.accessToken || json.value.token));",
+									"const refreshToken = json.refreshToken || (json.value && json.value.refreshToken);",
+									"if (accessToken) {",
+									"  pm.environment.set(\"accessToken\", accessToken);",
+									"  console.log(\"accessToken saved\");",
+									"} else {",
+									"  console.warn(\"accessToken not found in response. Check AuthResponse shape.\");",
+									"}",
+									"if (refreshToken) pm.environment.set(\"refreshToken\", refreshToken);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/Auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Auth",
+								"refresh"
+							]
+						},
+						"description": "Refresh token ile access token yenileme. AuthResponse shape projesine göre değişebilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/Auth/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Auth",
+								"logout"
+							]
+						},
+						"description": "Aktif refresh token/session kapatma. Body projesindeki LogoutCommand ile uyumlu olacak şekilde gerektiğinde güncellenebilir."
+					},
+					"response": []
+				}
+			],
+			"description": "Önce burayı çalıştır. Login başarılı olursa accessToken environment'a yazılır ve diğer endpointler otomatik Bearer token ile çalışır.\nSeed kullanıcı: admin@rtls.local / Admin123!\nAlternatif eski seed: serkan.demiray@live.com / 634496 olabilir."
+		},
+		{
+			"name": "01 - Bootstrap Seed IDs",
+			"item": [
+				{
+					"name": "Get Tags - save common tag IDs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tags loaded\", function () {",
+									"    pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});",
+									"",
+									"let res = pm.response.json();",
+									"",
+									"// farklı response formatlarını handle et",
+									"let arr = Array.isArray(res)",
+									"    ? res",
+									"    : (res.items || res.value || res.data || []);",
+									"",
+									"function setByExternalId(varName, externalId) {",
+									"    let item = arr.find(x =>",
+									"        (x.externalId || x.ExternalId) === externalId",
+									"    );",
+									"",
+									"    if (item) {",
+									"        pm.environment.set(varName, item.id || item.Id);",
+									"        console.log(\"SET:\", varName, item.id || item.Id);",
+									"    } else {",
+									"        console.warn(\"NOT FOUND:\", externalId);",
+									"    }",
+									"}",
+									"",
+									"// mapping",
+									"setByExternalId(\"tagPerson1Id\", \"tag-person-001\");",
+									"setByExternalId(\"tagPerson2Id\", \"tag-person-002\");",
+									"setByExternalId(\"tagPerson3Id\", \"tag-person-003\");",
+									"setByExternalId(\"tagVehicle1Id\", \"tag-vehicle-001\");",
+									"setByExternalId(\"tagAsset1Id\", \"tag-asset-001\");",
+									"",
+									"console.log(\"Saved tag ids\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Tags?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tags"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Seed tag listesini çeker ve sık kullanılan id'leri environment'a kaydeder.\nKaydedilenler: tagPerson1Id, tagPerson2Id, tagVehicle1Id, tagAsset1Id."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Anchors - save common anchor IDs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Anchors loaded\", function () {",
+									"    pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});",
+									"",
+									"let res = pm.response.json();",
+									"",
+									"let arr = Array.isArray(res)",
+									"    ? res",
+									"    : (res.items || res.value || res.data || []);",
+									"",
+									"function setAnchorByExternalId(varName, externalId) {",
+									"    let item = arr.find(x =>",
+									"        (x.externalId || x.ExternalId) === externalId",
+									"    );",
+									"",
+									"    if (item) {",
+									"        pm.environment.set(varName, item.id || item.Id);",
+									"        console.log(\"SET:\", varName, item.id || item.Id);",
+									"    } else {",
+									"        console.warn(\"NOT FOUND:\", externalId);",
+									"    }",
+									"}",
+									"",
+									"setAnchorByExternalId(\"anchor1Id\", \"anchor-001\");",
+									"setAnchorByExternalId(\"anchor4Id\", \"anchor-004\");",
+									"setAnchorByExternalId(\"anchor5Id\", \"anchor-005\");",
+									"setAnchorByExternalId(\"anchor6Id\", \"anchor-006\");",
+									"",
+									"console.log(\"Saved anchor ids\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Anchors?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Anchors"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Seed anchor listesini çeker ve sık kullanılan id'leri environment'a kaydeder.\nKaydedilenler: anchor1Id, anchor4Id, anchor5Id, anchor6Id."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current Locations - sanity check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Tracking/current-locations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tracking",
+								"current-locations"
+							]
+						},
+						"description": "Seed current location kayıtlarını doğrular. Bu data tracking ekranlarının dolu gelmesi için kullanılır."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Command Requests - save one command ID if exists",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Commands loaded\", function () {",
+									"    pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});",
+									"",
+									"{",
+									"    let responseJson = pm.response.json();",
+									"",
+									"    let commands = Array.isArray(responseJson)",
+									"        ? responseJson",
+									"        : (responseJson.items || responseJson.value || responseJson.data || []);",
+									"",
+									"    if (commands.length > 0) {",
+									"        pm.environment.set(\"commandRequestId\", commands[0].id || commands[0].Id);",
+									"        console.log(\"SET commandRequestId:\", commands[0].id || commands[0].Id);",
+									"    } else {",
+									"        console.warn(\"No commands found\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement?page=1&pageSize=50",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Seed command request listesini çeker. İlk command id'yi commandRequestId olarak kaydeder."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Pending Outbox - save one outbox ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Pending outbox loaded\", function () {",
+									"    pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});",
+									"",
+									"{",
+									"    let responseJson = pm.response.json();",
+									"",
+									"    let outboxMessages = Array.isArray(responseJson)",
+									"        ? responseJson",
+									"        : (responseJson.items || responseJson.value || responseJson.data || []);",
+									"",
+									"    if (outboxMessages.length > 0) {",
+									"        pm.environment.set(\"outboxMessageId\", outboxMessages[0].id || outboxMessages[0].Id);",
+									"        console.log(\"SET outboxMessageId:\", outboxMessages[0].id || outboxMessages[0].Id);",
+									"    } else {",
+									"        console.warn(\"No pending outbox messages found\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-Integration-Api-Key",
+								"value": "{{integrationApiKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/integration/outbox/pending?take=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"integration",
+								"outbox",
+								"pending"
+							],
+							"query": [
+								{
+									"key": "take",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Integration servisinin okuyacağı pending outbox kayıtlarını çeker. X-Integration-Api-Key gerekir.\nİlk outbox id'yi outboxMessageId olarak kaydeder."
+					},
+					"response": []
+				}
+			],
+			"description": "Login sonrası bu klasörü sırayla çalıştır. Postman environment içindeki tagId, anchorId, commandId ve outboxId değişkenlerini doldurur.\nBu sayede kalan requestler tek tıkla çalışır."
+		},
+		{
+			"name": "02 - Device Management",
+			"item": [
+				{
+					"name": "Tags - List",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Tags?page=1&pageSize=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tags"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Tag listesini getirir. Filter: search, status, tagType, page, pageSize."
+					},
+					"response": []
+				},
+				{
+					"name": "Tags - Get by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Tags/{{tagPerson1Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tags",
+								"{{tagPerson1Id}}"
+							]
+						},
+						"description": "Seçili tag detayını getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Tags - Create demo tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"createdTagId\", id);",
+									"    console.log(\"Saved createdTagId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"externalId\": \"tag-demo-{{$timestamp}}\",\n  \"code\": \"TAG-DEMO-{{$timestamp}}\",\n  \"name\": \"Postman Demo Tag\",\n  \"serialNumber\": \"SN-DEMO-{{$timestamp}}\",\n  \"tagType\": \"Personnel\",\n  \"metadataJson\": \"{\\\"source\\\":\\\"postman\\\",\\\"demo\\\":true}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/Tags",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tags"
+							]
+						},
+						"description": "Yeni tag oluşturur. id response'dan createdTagId olarak kaydedilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Tags - Update created demo tag",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"TAG-DEMO-UPDATED\",\n  \"name\": \"Postman Demo Tag Updated\",\n  \"serialNumber\": \"SN-DEMO-UPDATED\",\n  \"tagType\": \"Asset\",\n  \"metadataJson\": \"{\\\"source\\\":\\\"postman\\\",\\\"updated\\\":true}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/Tags/{{createdTagId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tags",
+								"{{createdTagId}}"
+							]
+						},
+						"description": "Bir önceki create request ile oluşan tag'i günceller."
+					},
+					"response": []
+				},
+				{
+					"name": "Tags - Deactivate created demo tag",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Tags/{{createdTagId}}/deactivate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tags",
+								"{{createdTagId}}",
+								"deactivate"
+							]
+						},
+						"description": "Demo tag'i pasife alır."
+					},
+					"response": []
+				},
+				{
+					"name": "Tags - Activate created demo tag",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Tags/{{createdTagId}}/activate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tags",
+								"{{createdTagId}}",
+								"activate"
+							]
+						},
+						"description": "Demo tag'i aktif hale getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Anchors - List",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Anchors?page=1&pageSize=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Anchors"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Anchor listesini getirir. Filter: search, status, companyId, branchId, page, pageSize."
+					},
+					"response": []
+				},
+				{
+					"name": "Anchors - Get by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Anchors/{{anchor1Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Anchors",
+								"{{anchor1Id}}"
+							]
+						},
+						"description": "Seçili anchor detayını getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Anchors - Create demo anchor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"createdAnchorId\", id);",
+									"    console.log(\"Saved createdAnchorId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"externalId\": \"anchor-demo-{{$timestamp}}\",\n  \"code\": \"ANCH-DEMO-{{$timestamp}}\",\n  \"name\": \"Postman Demo Anchor\",\n  \"ipAddress\": \"10.99.0.10\",\n  \"companyId\": null,\n  \"branchId\": null,\n  \"metadataJson\": \"{\\\"source\\\":\\\"postman\\\",\\\"demo\\\":true}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/Anchors",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Anchors"
+							]
+						},
+						"description": "Yeni anchor oluşturur. id response'dan createdAnchorId olarak kaydedilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Anchors - Update created demo anchor",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"ANCH-DEMO-UPDATED\",\n  \"name\": \"Postman Demo Anchor Updated\",\n  \"ipAddress\": \"10.99.0.11\",\n  \"companyId\": null,\n  \"branchId\": null,\n  \"metadataJson\": \"{\\\"source\\\":\\\"postman\\\",\\\"updated\\\":true}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/Anchors/{{createdAnchorId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Anchors",
+								"{{createdAnchorId}}"
+							]
+						},
+						"description": "Demo anchor bilgisini günceller."
+					},
+					"response": []
+				},
+				{
+					"name": "Anchors - Deactivate created demo anchor",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Anchors/{{createdAnchorId}}/deactivate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Anchors",
+								"{{createdAnchorId}}",
+								"deactivate"
+							]
+						},
+						"description": "Demo anchor'ı pasife alır."
+					},
+					"response": []
+				},
+				{
+					"name": "Anchors - Activate created demo anchor",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Anchors/{{createdAnchorId}}/activate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Anchors",
+								"{{createdAnchorId}}",
+								"activate"
+							]
+						},
+						"description": "Demo anchor'ı aktif hale getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "TagAssignments - Get by Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/TagAssignments/by-tag/{{tagPerson1Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"TagAssignments",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							]
+						},
+						"description": "Tag assignment geçmişini getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "TagAssignments - Get by User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/TagAssignments/by-user/{{userIdForAssignment}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"TagAssignments",
+								"by-user",
+								"{{userIdForAssignment}}"
+							]
+						},
+						"description": "Kullanıcıya atanmış tag'leri getirir. userIdForAssignment değişkenini set etmen gerekir."
+					},
+					"response": []
+				},
+				{
+					"name": "TagAssignments - Assign created tag to user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"tagAssignmentId\", id);",
+									"    console.log(\"Saved tagAssignmentId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tagId\": \"{{createdTagId}}\",\n  \"userId\": \"{{userIdForAssignment}}\",\n  \"isPrimary\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/TagAssignments",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"TagAssignments"
+							]
+						},
+						"description": "createdTagId değerini userIdForAssignment kullanıcısına atar."
+					},
+					"response": []
+				},
+				{
+					"name": "TagAssignments - Unassign created tag",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tagId\": \"{{createdTagId}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/TagAssignments/unassign",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"TagAssignments",
+								"unassign"
+							]
+						},
+						"description": "createdTagId için aktif assignment'ı kapatır."
+					},
+					"response": []
+				}
+			],
+			"description": "Cihaz master data yönetimi.\nÖnce Bootstrap klasörünü çalıştırırsan tagPerson1Id, anchor1Id gibi değişkenler dolu olur.\nCreate/Update istekleri demo kayıt oluşturmak için kullanılabilir."
+		},
+		{
+			"name": "03 - Tracking",
+			"item": [
+				{
+					"name": "Current Locations - List",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Tracking/current-locations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tracking",
+								"current-locations"
+							]
+						},
+						"description": "Tüm güncel konumları listeler. userId veya tagId query ile filtrelenebilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Current Locations - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Tracking/current-location/by-tag/{{tagPerson1Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tracking",
+								"current-location",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							]
+						},
+						"description": "Seçili tag'in en güncel konumunu getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "History - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Tracking/history/by-tag/{{tagPerson1Id}}?page=1&pageSize=500",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tracking",
+								"history",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "500"
+								}
+							]
+						},
+						"description": "Seçili tag'in konum geçmişini getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Dashboard",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Tracking/dashboard",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tracking",
+								"dashboard"
+							]
+						},
+						"description": "Tracking dashboard özetini getirir: toplam tag, online tag, active alarm, anchor durumları."
+					},
+					"response": []
+				},
+				{
+					"name": "Rebuild Current Location",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Tracking/rebuild-current-location/{{tagPerson1Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Tracking",
+								"rebuild-current-location",
+								"{{tagPerson1Id}}"
+							]
+						},
+						"description": "LocationEvent geçmişinden CurrentLocation kaydını yeniden oluşturur/günceller."
+					},
+					"response": []
+				}
+			],
+			"description": "Canlı konum, geçmiş ve dashboard endpointleri."
+		},
+		{
+			"name": "04 - Event Processing / Queries",
+			"item": [
+				{
+					"name": "Raw Events - List",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/raw?page=1&pageSize=50",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"raw"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "Raw Events - List only LocationCalculated",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/raw?eventType=LocationCalculated&page=1&pageSize=50",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"raw"
+							],
+							"query": [
+								{
+									"key": "eventType",
+									"value": "LocationCalculated"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "Raw Event - Get by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/raw/{{rawEventId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"raw",
+								"{{rawEventId}}"
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "Location Events - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/locations/by-tag/{{tagPerson1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"locations",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "Battery Events - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/battery/by-tag/{{tagAsset1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"battery",
+								"by-tag",
+								"{{tagAsset1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "IMU Events - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/imu/by-tag/{{tagPerson2Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"imu",
+								"by-tag",
+								"{{tagPerson2Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "Proximity Events - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/proximity/by-tag/{{tagPerson2Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"proximity",
+								"by-tag",
+								"{{tagPerson2Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "Emergency Events - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/emergency/by-tag/{{tagPerson1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"emergency",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "Anchor Heartbeats - By Anchor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/anchor-heartbeats/by-anchor/{{anchor1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"anchor-heartbeats",
+								"by-anchor",
+								"{{anchor1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "Anchor Status - By Anchor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/anchor-status/by-anchor/{{anchor5Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"anchor-status",
+								"by-anchor",
+								"{{anchor5Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "Anchor Health - By Anchor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/anchor-health/by-anchor/{{anchor1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"anchor-health",
+								"by-anchor",
+								"{{anchor1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "Tag Data - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/tag-data/by-tag/{{tagPerson1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"tag-data",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "UWB Ranging - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/uwb-ranging/by-tag/{{tagPerson1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"uwb-ranging",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "UWB Ranging - By Anchor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/uwb-ranging/by-anchor/{{anchor1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"uwb-ranging",
+								"by-anchor",
+								"{{anchor1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "UWB Tag-To-Tag - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/uwb-tag-to-tag-ranging/by-tag/{{tagPerson2Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"uwb-tag-to-tag-ranging",
+								"by-tag",
+								"{{tagPerson2Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "Anchor Config Events - By Anchor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/anchor-config/by-anchor/{{anchor1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"anchor-config",
+								"by-anchor",
+								"{{anchor1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "Anchor Config - Current",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/anchor-config/current/{{anchor1Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"anchor-config",
+								"current",
+								"{{anchor1Id}}"
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "BLE Config Events - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/ble-config/by-tag/{{tagPerson1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"ble-config",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "BLE Config - Current",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/ble-config/current/{{tagPerson1Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"ble-config",
+								"current",
+								"{{tagPerson1Id}}"
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "UWB Config Events - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/uwb-config/by-tag/{{tagPerson1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"uwb-config",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "UWB Config - Current",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/uwb-config/current/{{tagPerson1Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"uwb-config",
+								"current",
+								"{{tagPerson1Id}}"
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "DIO Config Events - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/dio-config/by-tag/{{tagPerson1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"dio-config",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "DIO Config - Current",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/dio-config/current/{{tagPerson1Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"dio-config",
+								"current",
+								"{{tagPerson1Id}}"
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "I2C Config Events - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/i2c-config/by-tag/{{tagPerson1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"i2c-config",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "I2C Config - Current",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/i2c-config/current/{{tagPerson1Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"i2c-config",
+								"current",
+								"{{tagPerson1Id}}"
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "BLE Advertisements - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/ble-advertisements/by-tag/{{tagPerson3Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"ble-advertisements",
+								"by-tag",
+								"{{tagPerson3Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "BLE Advertisements - By Anchor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/ble-advertisements/by-anchor/{{anchor4Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"ble-advertisements",
+								"by-anchor",
+								"{{anchor4Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "DIO Values - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/dio-values/by-tag/{{tagPerson1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"dio-values",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "DIO Values - Current",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/dio-values/current/{{tagPerson1Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"dio-values",
+								"current",
+								"{{tagPerson1Id}}"
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				},
+				{
+					"name": "I2C Data - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/i2c-data/by-tag/{{tagPerson1Id}}?page=1&pageSize=100",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"i2c-data",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Event query endpoint. Seed veya POST sonrası oluşan kayıtları döndürür."
+					},
+					"response": []
+				}
+			],
+			"description": "Event geçmişi ve snapshot sorguları."
+		},
+		{
+			"name": "05 - Event Processing / Process Events",
+			"item": [
+				{
+					"name": "Process LocationCalculated",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"LocationCalculated\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-person-001\",\n  \"x\": 18.4,\n  \"y\": 9.2,\n  \"z\": 0,\n  \"accuracy\": 0.7,\n  \"confidence\": 94,\n  \"usedAnchors\": [\n    {\n      \"anchorId\": \"anchor-001\"\n    },\n    {\n      \"anchorId\": \"anchor-002\"\n    },\n    {\n      \"anchorId\": \"anchor-003\"\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/location-calculated",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"location-calculated"
+							]
+						},
+						"description": "Konum hesaplama eventini işler. RawEvent + LocationEvent oluşturur, CurrentLocation günceller.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process EmergencyButtonPressed",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"EmergencyButtonPressed\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-person-001\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/emergency-button-pressed",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"emergency-button-pressed"
+							]
+						},
+						"description": "Acil buton eventini işler. EmergencyEvent ve Critical Alarm oluşturur.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process ProximityAlertRaised",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"ProximityAlertRaised\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-person-002\",\n  \"peerTagId\": \"tag-vehicle-001\",\n  \"distance\": 1.2,\n  \"threshold\": 2.5,\n  \"severity\": \"Critical\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/proximity-alert-raised",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"proximity-alert-raised"
+							]
+						},
+						"description": "Personel-araç yakınlık alarmı üretir.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process IMUEventDetected - Fall",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"IMUEventDetected\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-person-002\",\n  \"eventType\": \"FallDetected\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/imu-event-detected",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"imu-event-detected"
+							]
+						},
+						"description": "IMU eventini işler. FallDetected için kritik alarm üretir.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process BatteryLevelReported - Low",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"BatteryLevelReported\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"anchorId\": \"anchor-004\",\n  \"tagId\": \"tag-asset-001\",\n  \"batteryLevel\": 9\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/battery-level-reported",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"battery-level-reported"
+							]
+						},
+						"description": "Batarya eventini işler. 20 ve altı için LowBattery alarmı üretir.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process AnchorHeartbeatReceived",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"AnchorHeartbeatReceived\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"anchorId\": \"anchor-001\",\n  \"ipAddress\": \"10.10.1.11\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/anchor-heartbeat-received",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"anchor-heartbeat-received"
+							]
+						},
+						"description": "Anchor heartbeat işler ve anchor son görülme bilgisini günceller.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process AnchorStatusChanged - Offline",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"AnchorStatusChanged\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"anchorId\": \"anchor-006\",\n  \"status\": \"Offline\",\n  \"previousStatus\": \"Online\",\n  \"reason\": \"Heartbeat timeout\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/anchor-status-changed",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"anchor-status-changed"
+							]
+						},
+						"description": "Anchor status değişimi işler. Offline/Error için alarm üretir.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process AnchorHealthReported",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"AnchorHealthReported\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"anchorId\": \"anchor-001\",\n  \"uptime\": 86400000,\n  \"temperature\": 42.5,\n  \"cpuUsage\": 21.3,\n  \"memoryUsage\": 44.8,\n  \"tagCount\": 12,\n  \"packetLossRate\": 0.8\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/anchor-health-reported",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"anchor-health-reported"
+							]
+						},
+						"description": "Anchor sağlık metriklerini işler.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process TagDataReceived",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"TagDataReceived\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"anchorId\": \"anchor-004\",\n  \"tagId\": \"tag-person-003\",\n  \"tagType\": \"CodignoTagPro\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/tag-data-received",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"tag-data-received"
+							]
+						},
+						"description": "Anchor'ın tag'den ham data aldığını kaydeder.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process UWBRangingCompleted",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"UWBRangingCompleted\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"anchorId\": \"anchor-001\",\n  \"tagId\": \"tag-person-001\",\n  \"distance\": 6.45\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/uwb-ranging-completed",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"uwb-ranging-completed"
+							]
+						},
+						"description": "Anchor-tag UWB mesafe ölçümünü işler.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process UWBTagToTagRangingCompleted",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"UWBTagToTagRangingCompleted\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-person-002\",\n  \"peerTagId\": \"tag-vehicle-001\",\n  \"distance\": 1.8\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/uwb-tag-to-tag-ranging-completed",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"uwb-tag-to-tag-ranging-completed"
+							]
+						},
+						"description": "Tag-tag doğrudan UWB mesafe ölçümünü işler.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process AnchorConfigReported",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"AnchorConfigReported\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"anchorId\": \"anchor-001\",\n  \"firmwareVersion\": \"1.2.0\",\n  \"position\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"z\": 0\n  },\n  \"network\": {\n    \"ipAddress\": \"10.10.1.11\",\n    \"gateway\": \"10.10.1.1\",\n    \"subnet\": \"255.255.255.0\"\n  },\n  \"uwb\": {\n    \"enabled\": true,\n    \"channel\": 5\n  },\n  \"ble\": {\n    \"enabled\": true\n  },\n  \"heartbeatInterval\": 5000,\n  \"reportInterval\": 10000\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/anchor-config-reported",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"anchor-config-reported"
+							]
+						},
+						"description": "Anchor config snapshot oluşturur/günceller.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process BLEConfigReported",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"BLEConfigReported\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-person-001\",\n  \"enabled\": true,\n  \"txPower\": 8.5,\n  \"advertisementInterval\": 1000,\n  \"meshEnabled\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/ble-config-reported",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"ble-config-reported"
+							]
+						},
+						"description": "Tag BLE config event + current snapshot oluşturur/günceller.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process UWBConfigReported",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"UWBConfigReported\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-person-001\",\n  \"enabled\": true,\n  \"channel\": 5,\n  \"txPower\": 12.5,\n  \"rangingInterval\": 1000,\n  \"tagToTagEnabled\": true,\n  \"tagToTagInterval\": 500\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/uwb-config-reported",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"uwb-config-reported"
+							]
+						},
+						"description": "Tag UWB config event + current snapshot oluşturur/günceller.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process DIOConfigReported",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"DIOConfigReported\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-person-001\",\n  \"pin\": 1,\n  \"direction\": \"Output\",\n  \"periodicReportEnabled\": true,\n  \"periodicReportInterval\": 5000,\n  \"reportOnChange\": true,\n  \"lowPassFilter\": {\n    \"enabled\": false,\n    \"alpha\": 0\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/dio-config-reported",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"dio-config-reported"
+							]
+						},
+						"description": "Tag DIO config event + current snapshot oluşturur/günceller.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process I2CConfigReported",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"I2CConfigReported\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-person-001\",\n  \"enabled\": true,\n  \"clockSpeed\": 400000,\n  \"devices\": [\n    {\n      \"address\": 64,\n      \"name\": \"TempSensor\"\n    },\n    {\n      \"address\": 65,\n      \"name\": \"PressureSensor\"\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/i2c-config-reported",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"i2c-config-reported"
+							]
+						},
+						"description": "Tag I2C config event + current snapshot oluşturur/günceller.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process BLEAdvertisementReceived",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"BLEAdvertisementReceived\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"anchorId\": \"anchor-004\",\n  \"tagId\": \"tag-person-003\",\n  \"rssi\": -67\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/ble-advertisement-received",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"ble-advertisement-received"
+							]
+						},
+						"description": "BLE advertisement telemetry kaydı oluşturur.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process DIOValueReported",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"DIOValueReported\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-person-001\",\n  \"pin\": 1,\n  \"value\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/dio-value-reported",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"dio-value-reported"
+							]
+						},
+						"description": "DIO pin değer eventini ve current snapshot'ı günceller.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Process I2CDataReceived",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"lastProcessedEventId\", id);",
+									"    console.log(\"Saved lastProcessedEventId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"I2CDataReceived\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-person-001\",\n  \"address\": 64,\n  \"register\": 1,\n  \"direction\": \"Read\",\n  \"ack\": true,\n  \"data\": [\n    24,\n    25,\n    26\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/i2c-data-received",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"i2c-data-received"
+							]
+						},
+						"description": "I2C data eventini kaydeder.\n\nHer çalıştırmada event id ve timestamp otomatik üretilir."
+					},
+					"response": []
+				}
+			],
+			"description": "Hardware/Integration servisinden core'a düşen eventlerin Swagger/Postman simülasyonu.\nBu requestler RawEvent oluşturur ve ilgili domain event/snapshot/alarm/tracking etkilerini üretir."
+		},
+		{
+			"name": "06 - Alarm Management",
+			"item": [
+				{
+					"name": "Alarms - Active",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () { pm.expect(pm.response.code).to.be.within(200,299); });",
+									"const data = pm.response.json();",
+									"const arr = Array.isArray(data) ? data : (data.items || data.value || data.data || []);",
+									"if (arr.length > 0) pm.environment.set(\"alarmId\", arr[0].id || arr[0].Id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Alarms/active",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Alarms",
+								"active"
+							]
+						},
+						"description": "Aktif ve acknowledge edilmiş alarmları listeler. Seed emergency/proximity/low battery/anchor error kayıtlarını görmelisin."
+					},
+					"response": []
+				},
+				{
+					"name": "Alarms - Get by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Alarms/{{alarmId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Alarms",
+								"{{alarmId}}"
+							]
+						},
+						"description": "alarmId ile alarm detayını getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Alarms - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Alarms/by-tag/{{tagPerson1Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Alarms",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							]
+						},
+						"description": "Tag'e bağlı alarm geçmişini getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Alarms - By Anchor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Alarms/by-anchor/{{anchor5Id}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Alarms",
+								"by-anchor",
+								"{{anchor5Id}}"
+							]
+						},
+						"description": "Anchor'a bağlı alarm geçmişini getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Alarms - Acknowledge",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Alarms/{{alarmId}}/acknowledge",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Alarms",
+								"{{alarmId}}",
+								"acknowledge"
+							]
+						},
+						"description": "Alarmı acknowledge eder."
+					},
+					"response": []
+				},
+				{
+					"name": "Alarms - Resolve",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Alarms/{{alarmId}}/resolve",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Alarms",
+								"{{alarmId}}",
+								"resolve"
+							]
+						},
+						"description": "Alarmı resolved durumuna alır."
+					},
+					"response": []
+				},
+				{
+					"name": "Alarms - Close",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/Alarms/{{alarmId}}/close",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"Alarms",
+								"{{alarmId}}",
+								"close"
+							]
+						},
+						"description": "Alarmı kapatır."
+					},
+					"response": []
+				}
+			],
+			"description": "Alarm lifecycle testleri. Not: Bu klasör route olarak /api/Alarms varsayar.\nEğer controller adın AlarmManagement ise base route'u /api/AlarmManagement olarak değiştir."
+		},
+		{
+			"name": "07 - Command Management / Create Commands",
+			"item": [
+				{
+					"name": "Create RequestConfig - Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"commandRequestId\", id);",
+									"    console.log(\"Saved commandRequestId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"RequestConfig\",\n  \"targetType\": \"Tag\",\n  \"tagId\": \"tag-person-001\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/request-config",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"request-config"
+							]
+						},
+						"description": "Tag/anchor config raporu talep etmek için command request oluşturur.\n\nResponse id commandRequestId olarak kaydedilir. Sonra Queue/Integration akışını çalıştır."
+					},
+					"response": []
+				},
+				{
+					"name": "Create ResetDevice - Anchor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"commandRequestId\", id);",
+									"    console.log(\"Saved commandRequestId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"ResetDevice\",\n  \"targetType\": \"Anchor\",\n  \"anchorId\": \"anchor-005\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/reset-device",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"reset-device"
+							]
+						},
+						"description": "Anchor veya tag restart command request oluşturur.\n\nResponse id commandRequestId olarak kaydedilir. Sonra Queue/Integration akışını çalıştır."
+					},
+					"response": []
+				},
+				{
+					"name": "Create SetAnchorConfig",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"commandRequestId\", id);",
+									"    console.log(\"Saved commandRequestId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"SetAnchorConfig\",\n  \"anchorId\": \"anchor-001\",\n  \"heartbeatInterval\": 5000,\n  \"reportInterval\": 10000,\n  \"network\": {\n    \"ipAddress\": \"10.10.1.11\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/set-anchor-config",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"set-anchor-config"
+							]
+						},
+						"description": "Anchor konfigürasyon command request oluşturur.\n\nResponse id commandRequestId olarak kaydedilir. Sonra Queue/Integration akışını çalıştır."
+					},
+					"response": []
+				},
+				{
+					"name": "Create SetBLEConfig",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"commandRequestId\", id);",
+									"    console.log(\"Saved commandRequestId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"SetBLEConfig\",\n  \"tagId\": \"tag-person-001\",\n  \"enabled\": true,\n  \"txPower\": 8.5,\n  \"advertisementInterval\": 1000,\n  \"meshEnabled\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/set-ble-config",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"set-ble-config"
+							]
+						},
+						"description": "BLE config command request oluşturur.\n\nResponse id commandRequestId olarak kaydedilir. Sonra Queue/Integration akışını çalıştır."
+					},
+					"response": []
+				},
+				{
+					"name": "Create SetDIOConfig",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"commandRequestId\", id);",
+									"    console.log(\"Saved commandRequestId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"SetDIOConfig\",\n  \"tagId\": \"tag-person-001\",\n  \"pin\": 1,\n  \"direction\": \"Output\",\n  \"periodicReportEnabled\": true,\n  \"periodicReportInterval\": 5000,\n  \"reportOnChange\": true,\n  \"lowPassFilter\": {\n    \"enabled\": false,\n    \"alpha\": 0\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/set-dio-config",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"set-dio-config"
+							]
+						},
+						"description": "DIO config command request oluşturur.\n\nResponse id commandRequestId olarak kaydedilir. Sonra Queue/Integration akışını çalıştır."
+					},
+					"response": []
+				},
+				{
+					"name": "Create SetDIOValue",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"commandRequestId\", id);",
+									"    console.log(\"Saved commandRequestId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"SetDIOValue\",\n  \"tagId\": \"tag-person-001\",\n  \"pin\": 1,\n  \"value\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/set-dio-value",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"set-dio-value"
+							]
+						},
+						"description": "DIO output pin değer yazma command request oluşturur.\n\nResponse id commandRequestId olarak kaydedilir. Sonra Queue/Integration akışını çalıştır."
+					},
+					"response": []
+				},
+				{
+					"name": "Create SetI2CConfig",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"commandRequestId\", id);",
+									"    console.log(\"Saved commandRequestId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"SetI2CConfig\",\n  \"tagId\": \"tag-person-001\",\n  \"enabled\": true,\n  \"clockSpeed\": 400000,\n  \"devices\": [\n    {\n      \"address\": 64,\n      \"name\": \"TempSensor\"\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/set-i2c-config",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"set-i2c-config"
+							]
+						},
+						"description": "I2C config command request oluşturur.\n\nResponse id commandRequestId olarak kaydedilir. Sonra Queue/Integration akışını çalıştır."
+					},
+					"response": []
+				},
+				{
+					"name": "Create SetProximityConfig",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"commandRequestId\", id);",
+									"    console.log(\"Saved commandRequestId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"SetProximityConfig\",\n  \"tagId\": \"tag-person-002\",\n  \"enabled\": true,\n  \"warningThreshold\": 3.0,\n  \"criticalThreshold\": 1.5,\n  \"peerTagTypes\": [\n    \"Vehicle\"\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/set-proximity-config",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"set-proximity-config"
+							]
+						},
+						"description": "Tag-to-tag proximity eşikleri için command request oluşturur.\n\nResponse id commandRequestId olarak kaydedilir. Sonra Queue/Integration akışını çalıştır."
+					},
+					"response": []
+				},
+				{
+					"name": "Create SetTagAlert",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"commandRequestId\", id);",
+									"    console.log(\"Saved commandRequestId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"SetTagAlert\",\n  \"tagId\": \"tag-person-001\",\n  \"buzzerEnabled\": true,\n  \"vibrationEnabled\": true,\n  \"ledEnabled\": true,\n  \"ledColor\": \"Red\",\n  \"durationMs\": 5000\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/set-tag-alert",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"set-tag-alert"
+							]
+						},
+						"description": "Tag buzzer/led/vibration alarm command request oluşturur.\n\nResponse id commandRequestId olarak kaydedilir. Sonra Queue/Integration akışını çalıştır."
+					},
+					"response": []
+				},
+				{
+					"name": "Create SetUWBConfig",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"commandRequestId\", id);",
+									"    console.log(\"Saved commandRequestId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"SetUWBConfig\",\n  \"tagId\": \"tag-person-002\",\n  \"enabled\": true,\n  \"channel\": 5,\n  \"txPower\": 12.5,\n  \"rangingInterval\": 1000,\n  \"tagToTagEnabled\": true,\n  \"tagToTagInterval\": 500\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/set-uwb-config",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"set-uwb-config"
+							]
+						},
+						"description": "UWB config command request oluşturur.\n\nResponse id commandRequestId olarak kaydedilir. Sonra Queue/Integration akışını çalıştır."
+					},
+					"response": []
+				},
+				{
+					"name": "Create WriteI2CData",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status is success\", function () {",
+									"  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"try {",
+									"  const data = pm.response.json();",
+									"  const id = data.id || data.Id || data.value || data.Value;",
+									"  if (id) {",
+									"    pm.environment.set(\"commandRequestId\", id);",
+									"    console.log(\"Saved commandRequestId\", id);",
+									"  }",
+									"} catch (e) {}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"WriteI2CData\",\n  \"tagId\": \"tag-person-001\",\n  \"address\": 64,\n  \"register\": 1,\n  \"data\": [\n    1,\n    2,\n    3,\n    4\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/write-i2c-data",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"write-i2c-data"
+							]
+						},
+						"description": "I2C cihaza data yazma command request oluşturur.\n\nResponse id commandRequestId olarak kaydedilir. Sonra Queue/Integration akışını çalıştır."
+					},
+					"response": []
+				}
+			],
+			"description": "RTLS hardware'a gönderilecek command requestleri oluşturur.\nCore API burada hardware'a direkt gitmez; command + outbox kaydı üretir."
+		},
+		{
+			"name": "08 - Command Management / Lifecycle",
+			"item": [
+				{
+					"name": "Commands - List",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement?page=1&pageSize=50",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Command request listesini getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Commands - Get by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/{{commandRequestId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"{{commandRequestId}}"
+							]
+						},
+						"description": "commandRequestId detayını getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Commands - By Tag",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/by-tag/{{tagPerson1Id}}?page=1&pageSize=50",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"by-tag",
+								"{{tagPerson1Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Tag'e bağlı command geçmişini getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Commands - By Anchor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/by-anchor/{{anchor5Id}}?page=1&pageSize=50",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"by-anchor",
+								"{{anchor5Id}}"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Anchor'a bağlı command geçmişini getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Commands - History",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/{{commandRequestId}}/history",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"{{commandRequestId}}",
+								"history"
+							]
+						},
+						"description": "Command status history getirir."
+					},
+					"response": []
+				},
+				{
+					"name": "Commands - Queue",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/{{commandRequestId}}/queue",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"{{commandRequestId}}",
+								"queue"
+							]
+						},
+						"description": "Pending command'ı Queued yapar ve outbox oluşturur."
+					},
+					"response": []
+				},
+				{
+					"name": "Commands - Cancel",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"Postman cancel test\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/{{commandRequestId}}/cancel",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"{{commandRequestId}}",
+								"cancel"
+							]
+						},
+						"description": "Command iptal eder. Sadece uygun status'te çalışır."
+					},
+					"response": []
+				},
+				{
+					"name": "Commands - Retry",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/{{commandRequestId}}/retry",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"{{commandRequestId}}",
+								"retry"
+							]
+						},
+						"description": "Failed command'ı retry için Pending yapar."
+					},
+					"response": []
+				}
+			],
+			"description": "Command sorgu, queue, cancel, retry akışı."
+		},
+		{
+			"name": "09 - Integration / Outbox & Callback",
+			"item": [
+				{
+					"name": "Integration - Pending Outbox",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () { pm.expect(pm.response.code).to.be.within(200,299); });",
+									"const data = pm.response.json();",
+									"const arr = Array.isArray(data) ? data : (data.items || data.value || data.data || []);",
+									"if (arr.length > 0) pm.environment.set(\"outboxMessageId\", arr[0].id || arr[0].Id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-Integration-Api-Key",
+								"value": "{{integrationApiKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/integration/outbox/pending?take=50",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"integration",
+								"outbox",
+								"pending"
+							],
+							"query": [
+								{
+									"key": "take",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Integration servis pending outbox mesajlarını buradan çeker."
+					},
+					"response": []
+				},
+				{
+					"name": "Integration - Mark Outbox Dispatched",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Integration-Api-Key",
+								"value": "{{integrationApiKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/integration/outbox/{{outboxMessageId}}/mark-dispatched",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"integration",
+								"outbox",
+								"{{outboxMessageId}}",
+								"mark-dispatched"
+							]
+						},
+						"description": "Outbox mesajı integration tarafından başarıyla alındı/gönderildi olarak işaretler."
+					},
+					"response": []
+				},
+				{
+					"name": "Integration - Mark Outbox Failed",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Integration-Api-Key",
+								"value": "{{integrationApiKey}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"failureReason\": \"Postman simulated integration failure\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/integration/outbox/{{outboxMessageId}}/mark-failed",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"integration",
+								"outbox",
+								"{{outboxMessageId}}",
+								"mark-failed"
+							]
+						},
+						"description": "Outbox gönderimi hata aldı olarak işaretler."
+					},
+					"response": []
+				},
+				{
+					"name": "Integration - Mark Command Sent",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Integration-Api-Key",
+								"value": "{{integrationApiKey}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"externalCorrelationId\": \"vendor-cmd-{{$timestamp}}\",\n  \"note\": \"Sent by Postman integration simulation\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/integration/commands/{{commandRequestId}}/mark-sent",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"integration",
+								"commands",
+								"{{commandRequestId}}",
+								"mark-sent"
+							]
+						},
+						"description": "Command vendor/hardware API'ye gönderildi olarak işaretlenir."
+					},
+					"response": []
+				},
+				{
+					"name": "Integration - Mark Command Succeeded",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Integration-Api-Key",
+								"value": "{{integrationApiKey}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"externalCorrelationId\": \"vendor-cmd-{{$timestamp}}\",\n  \"responseJson\": \"{\\\"success\\\":true,\\\"message\\\":\\\"Accepted\\\"}\",\n  \"note\": \"Succeeded by Postman integration simulation\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/integration/commands/{{commandRequestId}}/mark-succeeded",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"integration",
+								"commands",
+								"{{commandRequestId}}",
+								"mark-succeeded"
+							]
+						},
+						"description": "Hardware/integration command başarıyla tamamlandı bildirimi."
+					},
+					"response": []
+				},
+				{
+					"name": "Integration - Mark Command Failed",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Integration-Api-Key",
+								"value": "{{integrationApiKey}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"externalCorrelationId\": \"vendor-cmd-{{$timestamp}}\",\n  \"failureReason\": \"Device offline\",\n  \"responseJson\": \"{\\\"success\\\":false,\\\"message\\\":\\\"Device offline\\\"}\",\n  \"note\": \"Failed by Postman integration simulation\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/integration/commands/{{commandRequestId}}/mark-failed",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"integration",
+								"commands",
+								"{{commandRequestId}}",
+								"mark-failed"
+							]
+						},
+						"description": "Hardware/integration command hata bildirimi."
+					},
+					"response": []
+				}
+			],
+			"description": "Integration servis simülasyonu.\nBu endpointlerde Bearer token gerekmez; X-Integration-Api-Key gerekir.\nAkış:\n1. Command oluştur.\n2. Command queue et.\n3. Pending outbox çek.\n4. Outbox dispatched işaretle.\n5. Command sent/succeeded/failed işaretle."
+		},
+		{
+			"name": "10 - Negative Tests",
+			"item": [
+				{
+					"name": "Negative - Duplicate Event ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set('unixMs', Date.now().toString());"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"00000000-0000-0000-0000-000000000111\",\n  \"type\": \"EmergencyButtonPressed\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-person-001\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/emergency-button-pressed",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"emergency-button-pressed"
+							]
+						},
+						"description": "Aynı id ile iki defa gönder. İkinci çağrıda 400 Duplicate raw event beklenir."
+					},
+					"response": []
+				},
+				{
+					"name": "Negative - Unknown Tag",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"EmergencyButtonPressed\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"tagId\": \"tag-not-found\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/emergency-button-pressed",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"emergency-button-pressed"
+							]
+						},
+						"description": "Olmayan tagId ile 400 Tag not found beklenir."
+					},
+					"response": []
+				},
+				{
+					"name": "Negative - Unknown Anchor",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.variables.set(\"eventId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+									"pm.variables.set(\"unixMs\", Date.now().toString());"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"{{eventId}}\",\n  \"type\": \"AnchorHeartbeatReceived\",\n  \"timestamp\": \"{{unixMs}}\",\n  \"anchorId\": \"anchor-not-found\",\n  \"ipAddress\": \"10.0.0.1\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/EventProcessing/anchor-heartbeat-received",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"EventProcessing",
+								"anchor-heartbeat-received"
+							]
+						},
+						"description": "Olmayan anchorId ile 400 Anchor not found beklenir."
+					},
+					"response": []
+				},
+				{
+					"name": "Negative - Invalid Integration API Key",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"HTTP 2xx\", function () {",
+									"  pm.expect(pm.response.code).to.be.within(200, 299);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-Integration-Api-Key",
+								"value": "invalid-key",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/CommandManagement/integration/outbox/pending?take=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"CommandManagement",
+								"integration",
+								"outbox",
+								"pending"
+							],
+							"query": [
+								{
+									"key": "take",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Yanlış api key ile 401/403 beklenir."
+					},
+					"response": []
+				}
+			],
+			"description": "Hata senaryoları. Beklenen sonuç genelde 400/401/403'tür."
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://localhost:5001"
+		},
+		{
+			"key": "eventId",
+			"value": ""
+		},
+		{
+			"key": "unixMs",
+			"value": ""
+		}
+	]
+}
