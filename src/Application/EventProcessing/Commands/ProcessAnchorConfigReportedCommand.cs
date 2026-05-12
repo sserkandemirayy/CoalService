@@ -13,7 +13,7 @@ public sealed class ProcessAnchorConfigReportedCommandHandler : IRequestHandler<
     private readonly IRawEventRepository _rawEvents;
     private readonly IAnchorRepository _anchors;
     private readonly IAnchorConfigEventRepository _configEvents;
-    private readonly IAnchorConfigSnapshotRepository _snapshots;
+    private readonly IAnchorConfigSnapshotRepository _snapshots; //TEST
     private readonly IUnitOfWork _uow;
 
     public ProcessAnchorConfigReportedCommandHandler(
