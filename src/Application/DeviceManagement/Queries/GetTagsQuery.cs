@@ -52,21 +52,41 @@ public sealed class GetTagsQueryHandler : IRequestHandler<GetTagsQuery, Result<I
             request.PageSize,
             ct);
 
+
         var dto = items
-            .Select(x => new TagDto(
-                x.Id,
-                x.ExternalId,
-                x.Code,
-                x.Name,
-                x.SerialNumber,
-                x.TagType.ToString(),
-                x.Status.ToString(),
-                x.IsActive,
-                x.BatteryLevel,
-                x.LastSeenAt,
-                x.LastEventAt,
-                x.MetadataJson))
-            .ToList();
+                .Select(x =>
+                {
+                    var assignment = x.Assignments
+                        .FirstOrDefault(a => a.UnassignedAt == null);
+
+                    AssignedUserDto? assignedUser = null;
+
+                    if (assignment?.User is not null)
+                    {
+                        assignedUser = new AssignedUserDto(
+                            assignment.User.Id,
+                            $"{assignment.User.FirstName} {assignment.User.LastName}".Trim(),
+                            assignment.User.Email
+                        );
+                    }
+
+                    return new TagDto(
+                        x.Id,
+                        x.ExternalId,
+                        x.Code,
+                        x.Name,
+                        x.SerialNumber,
+                        x.TagType.ToString(),
+                        x.Status.ToString(),
+                        x.IsActive,
+                        x.BatteryLevel,
+                        x.LastSeenAt,
+                        x.LastEventAt,
+                        x.MetadataJson,
+                        assignedUser
+                    );
+                })
+                .ToList();
 
         return Result<IReadOnlyList<TagDto>>.Success(dto);
     }

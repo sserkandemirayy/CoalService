@@ -16,7 +16,10 @@ public class TagRepository : ITagRepository
     }
 
     public async Task<Tag?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.Tags.FirstOrDefaultAsync(x => x.Id == id, ct);
+    => await _db.Tags
+        .Include(x => x.Assignments.Where(a => a.UnassignedAt == null))
+        .ThenInclude(a => a.User)
+        .FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task<Tag?> GetByExternalIdAsync(string externalId, CancellationToken ct = default)
         => await _db.Tags.FirstOrDefaultAsync(x => x.ExternalId == externalId, ct);
@@ -41,7 +44,13 @@ public class TagRepository : ITagRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.Tags.AsQueryable();
+        //var query = _db.Tags.AsQueryable();
+
+        var query = _db.Tags
+            .Include(x => x.Assignments
+                .Where(a => a.UnassignedAt == null))
+            .ThenInclude(a => a.User)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {

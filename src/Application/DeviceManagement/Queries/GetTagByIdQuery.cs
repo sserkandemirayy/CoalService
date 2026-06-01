@@ -19,8 +19,23 @@ public sealed class GetTagByIdQueryHandler : IRequestHandler<GetTagByIdQuery, Re
     public async Task<Result<TagDto>> Handle(GetTagByIdQuery request, CancellationToken ct)
     {
         var tag = await _tagRepository.GetByIdAsync(request.Id, ct);
+
         if (tag is null)
             return Result<TagDto>.Failure("Tag not found.");
+
+        var assignment = tag.Assignments
+            .FirstOrDefault(a => a.UnassignedAt == null);
+
+        AssignedUserDto? assignedUser = null;
+
+        if (assignment?.User is not null)
+        {
+            assignedUser = new AssignedUserDto(
+                assignment.User.Id,
+                $"{assignment.User.FirstName} {assignment.User.LastName}".Trim(),
+                assignment.User.Email
+            );
+        }
 
         var dto = new TagDto(
             tag.Id,
@@ -34,7 +49,9 @@ public sealed class GetTagByIdQueryHandler : IRequestHandler<GetTagByIdQuery, Re
             tag.BatteryLevel,
             tag.LastSeenAt,
             tag.LastEventAt,
-            tag.MetadataJson);
+            tag.MetadataJson,
+            assignedUser
+        );
 
         return Result<TagDto>.Success(dto);
     }

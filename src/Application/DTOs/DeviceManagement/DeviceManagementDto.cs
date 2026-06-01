@@ -1,5 +1,11 @@
 ﻿namespace Application.DTOs.DeviceManagement;
 
+public sealed record AssignedUserDto(
+    Guid Id,
+    string FullName,
+    string Email
+);
+
 public sealed record TagDto(
     Guid Id,
     string ExternalId,
@@ -12,7 +18,8 @@ public sealed record TagDto(
     int? BatteryLevel,
     DateTime? LastSeenAt,
     DateTime? LastEventAt,
-    string? MetadataJson
+    string? MetadataJson,
+    AssignedUserDto? AssignedUser
 );
 
 public sealed record AnchorDto(
