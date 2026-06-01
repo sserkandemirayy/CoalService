@@ -3,6 +3,7 @@ using Application.DTOs.EventProcessing;
 using Domain.Abstractions;
 using Domain.Entities;
 using MediatR;
+using Application.Common.Realtime;
 
 namespace Application.EventProcessing.Commands;
 
@@ -16,6 +17,7 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
     private readonly ICurrentLocationRepository _currentLocationRepository;
     private readonly ITagAssignmentRepository _tagAssignmentRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IRealtimeNotifier _realtimeNotifier;
 
     public ProcessLocationCalculatedCommandHandler(
         IRawEventRepository rawEventRepository,
@@ -23,7 +25,8 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
         ILocationEventRepository locationEventRepository,
         ICurrentLocationRepository currentLocationRepository,
         ITagAssignmentRepository tagAssignmentRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IRealtimeNotifier realtimeNotifier)
     {
         _rawEventRepository = rawEventRepository;
         _tagRepository = tagRepository;
@@ -31,6 +34,7 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
         _currentLocationRepository = currentLocationRepository;
         _tagAssignmentRepository = tagAssignmentRepository;
         _unitOfWork = unitOfWork;
+        _realtimeNotifier = realtimeNotifier;
     }
 
     public async Task<Result<Guid>> Handle(ProcessLocationCalculatedCommand request, CancellationToken ct)
@@ -114,6 +118,30 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
 
         rawEvent.MarkProcessed();
         await _unitOfWork.SaveChangesAsync(ct);
+
+        await _realtimeNotifier.LocationUpdatedAsync(
+            new LocationUpdatedRealtimeDto(
+                tag.Id,
+                tag.ExternalId,
+                tag.Code,
+                activeAssignment?.UserId,
+                request.Payload.X,
+                request.Payload.Y,
+                request.Payload.Z,
+                request.Payload.Accuracy,
+                request.Payload.Confidence,
+                eventAt,
+                anchorCount),
+            ct);
+
+        await _realtimeNotifier.TagStatusChangedAsync(
+            new TagStatusChangedRealtimeDto(
+                tag.Id,
+                tag.ExternalId,
+                tag.Code,
+                tag.Status.ToString(),
+                eventAt),
+            ct);
 
         return Result<Guid>.Success(locationEvent.Id);
     }

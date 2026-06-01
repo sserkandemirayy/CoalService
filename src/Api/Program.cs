@@ -1,6 +1,8 @@
 ﻿using Api.Extensions;
 using Api.Security;
 using Api.Services;
+using Api.Hubs;
+using Application.Common.Realtime;
 using Application.Common.Behaviors;
 using Application.Common.Options;
 using Domain.Abstractions;
@@ -114,6 +116,9 @@ builder.Services.AddScoped<ICommandStatusHistoryRepository, CommandStatusHistory
 
 builder.Services.AddScoped<IOutboxMessageRepository, OutboxMessageRepository>();
 builder.Services.AddScoped<IntegrationApiKeyFilter>();
+
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
 
 // MediatR - Validation
 builder.Services.AddMediatR(cfg =>
@@ -359,6 +364,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<TrackingHub>("/hubs/tracking");
 app.MapGet("/health", () => Results.Ok("OK"));
 
 app.Run();

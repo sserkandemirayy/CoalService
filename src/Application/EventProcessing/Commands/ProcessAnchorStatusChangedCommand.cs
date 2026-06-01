@@ -4,6 +4,7 @@ using Domain.Abstractions;
 using Domain.Entities;
 using Domain.Enums;
 using MediatR;
+using Application.Common.Realtime;
 
 namespace Application.EventProcessing.Commands;
 
@@ -16,19 +17,22 @@ public sealed class ProcessAnchorStatusChangedCommandHandler : IRequestHandler<P
     private readonly IAnchorStatusEventRepository _anchorStatusEventRepository;
     private readonly IAlarmRepository _alarmRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IRealtimeNotifier _realtimeNotifier;
 
     public ProcessAnchorStatusChangedCommandHandler(
         IRawEventRepository rawEventRepository,
         IAnchorRepository anchorRepository,
         IAnchorStatusEventRepository anchorStatusEventRepository,
         IAlarmRepository alarmRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IRealtimeNotifier realtimeNotifier)
     {
         _rawEventRepository = rawEventRepository;
         _anchorRepository = anchorRepository;
         _anchorStatusEventRepository = anchorStatusEventRepository;
         _alarmRepository = alarmRepository;
         _unitOfWork = unitOfWork;
+        _realtimeNotifier = realtimeNotifier;
     }
 
     public async Task<Result<Guid>> Handle(ProcessAnchorStatusChangedCommand request, CancellationToken ct)
@@ -73,8 +77,11 @@ public sealed class ProcessAnchorStatusChangedCommandHandler : IRequestHandler<P
         anchor.ChangeStatus(status, eventAt);
         await _anchorRepository.UpdateAsync(anchor, ct);
 
+        Alarm? createdAlarm = null;
+
         if (status is AnchorStatus.Offline or AnchorStatus.Error)
         {
+
             var alarmType = status == AnchorStatus.Offline
                 ? AlarmType.AnchorOffline
                 : AlarmType.AnchorError;
@@ -83,7 +90,7 @@ public sealed class ProcessAnchorStatusChangedCommandHandler : IRequestHandler<P
                 ? AlarmSeverity.Warning
                 : AlarmSeverity.Critical;
 
-            var alarm = Alarm.Create(
+            createdAlarm = Alarm.Create(
                 alarmType,
                 severity,
                 $"Anchor status changed: {status}",
@@ -96,11 +103,43 @@ public sealed class ProcessAnchorStatusChangedCommandHandler : IRequestHandler<P
                 request.Payload.Reason,
                 EventProcessingHelper.Serialize(request.Payload));
 
-            await _alarmRepository.AddAsync(alarm, ct);
+            await _alarmRepository.AddAsync(createdAlarm, ct);
+
         }
 
         rawEvent.MarkProcessed();
         await _unitOfWork.SaveChangesAsync(ct);
+
+        await _realtimeNotifier.AnchorStatusChangedAsync(
+            new AnchorStatusChangedRealtimeDto(
+                anchor.Id,
+                anchor.ExternalId,
+                anchor.Code,
+                status.ToString(),
+                previousStatus.ToString(),
+                request.Payload.Reason,
+                eventAt),
+            ct);
+
+        if (createdAlarm is not null)
+        {
+            await _realtimeNotifier.AlarmRaisedAsync(
+                new AlarmRaisedRealtimeDto(
+                    createdAlarm.Id,
+                    createdAlarm.AlarmType.ToString(),
+                    createdAlarm.Severity.ToString(),
+                    createdAlarm.Status.ToString(),
+                    createdAlarm.Title,
+                    null,
+                    null,
+                    null,
+                    null,
+                    anchor.Id,
+                    anchor.ExternalId,
+                    null,
+                    createdAlarm.StartedAt),
+                ct);
+        }
 
         return Result<Guid>.Success(statusEvent.Id);
     }

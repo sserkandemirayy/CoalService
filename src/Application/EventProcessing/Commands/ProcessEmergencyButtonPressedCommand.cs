@@ -4,6 +4,7 @@ using Domain.Abstractions;
 using Domain.Entities;
 using Domain.Enums;
 using MediatR;
+using Application.Common.Realtime;
 
 namespace Application.EventProcessing.Commands;
 
@@ -17,6 +18,7 @@ public sealed class ProcessEmergencyButtonPressedCommandHandler : IRequestHandle
     private readonly IAlarmRepository _alarmRepository;
     private readonly ITagAssignmentRepository _tagAssignmentRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IRealtimeNotifier _realtimeNotifier;
 
     public ProcessEmergencyButtonPressedCommandHandler(
         IRawEventRepository rawEventRepository,
@@ -24,7 +26,8 @@ public sealed class ProcessEmergencyButtonPressedCommandHandler : IRequestHandle
         IEmergencyEventRepository emergencyEventRepository,
         IAlarmRepository alarmRepository,
         ITagAssignmentRepository tagAssignmentRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IRealtimeNotifier realtimeNotifier)
     {
         _rawEventRepository = rawEventRepository;
         _tagRepository = tagRepository;
@@ -32,6 +35,7 @@ public sealed class ProcessEmergencyButtonPressedCommandHandler : IRequestHandle
         _alarmRepository = alarmRepository;
         _tagAssignmentRepository = tagAssignmentRepository;
         _unitOfWork = unitOfWork;
+        _realtimeNotifier = realtimeNotifier;
     }
 
     public async Task<Result<Guid>> Handle(ProcessEmergencyButtonPressedCommand request, CancellationToken ct)
@@ -84,6 +88,32 @@ public sealed class ProcessEmergencyButtonPressedCommandHandler : IRequestHandle
 
         rawEvent.MarkProcessed();
         await _unitOfWork.SaveChangesAsync(ct);
+
+        await _realtimeNotifier.AlarmRaisedAsync(
+            new AlarmRaisedRealtimeDto(
+                alarm.Id,
+                alarm.AlarmType.ToString(),
+                alarm.Severity.ToString(),
+                alarm.Status.ToString(),
+                alarm.Title,
+                tag.Id,
+                tag.ExternalId,
+                null,
+                null,
+                null,
+                null,
+                activeAssignment?.UserId,
+                alarm.StartedAt),
+            ct);
+
+                await _realtimeNotifier.TagStatusChangedAsync(
+                    new TagStatusChangedRealtimeDto(
+                        tag.Id,
+                        tag.ExternalId,
+                        tag.Code,
+                        tag.Status.ToString(),
+                        eventAt),
+                    ct);
 
         return Result<Guid>.Success(emergencyEvent.Id);
     }

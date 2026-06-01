@@ -4,6 +4,7 @@ using Domain.Abstractions;
 using Domain.Entities;
 using Domain.Enums;
 using MediatR;
+using Application.Common.Realtime;
 
 namespace Application.EventProcessing.Commands;
 
@@ -16,19 +17,22 @@ public sealed class ProcessProximityAlertRaisedCommandHandler : IRequestHandler<
     private readonly IProximityEventRepository _proximityEventRepository;
     private readonly IAlarmRepository _alarmRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IRealtimeNotifier _realtimeNotifier;
 
     public ProcessProximityAlertRaisedCommandHandler(
         IRawEventRepository rawEventRepository,
         ITagRepository tagRepository,
         IProximityEventRepository proximityEventRepository,
         IAlarmRepository alarmRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IRealtimeNotifier realtimeNotifier)
     {
         _rawEventRepository = rawEventRepository;
         _tagRepository = tagRepository;
         _proximityEventRepository = proximityEventRepository;
         _alarmRepository = alarmRepository;
         _unitOfWork = unitOfWork;
+        _realtimeNotifier = realtimeNotifier;
     }
 
     public async Task<Result<Guid>> Handle(ProcessProximityAlertRaisedCommand request, CancellationToken ct)
@@ -104,6 +108,41 @@ public sealed class ProcessProximityAlertRaisedCommandHandler : IRequestHandler<
 
         rawEvent.MarkProcessed();
         await _unitOfWork.SaveChangesAsync(ct);
+
+        await _realtimeNotifier.AlarmRaisedAsync(
+                new AlarmRaisedRealtimeDto(
+                    alarm.Id,
+                    alarm.AlarmType.ToString(),
+                    alarm.Severity.ToString(),
+                    alarm.Status.ToString(),
+                    alarm.Title,
+                    tag.Id,
+                    tag.ExternalId,
+                    peerTag.Id,
+                    peerTag.ExternalId,
+                    null,
+                    null,
+                    null,
+                    alarm.StartedAt),
+                ct);
+
+        await _realtimeNotifier.TagStatusChangedAsync(
+            new TagStatusChangedRealtimeDto(
+                tag.Id,
+                tag.ExternalId,
+                tag.Code,
+                tag.Status.ToString(),
+                eventAt),
+            ct);
+
+        await _realtimeNotifier.TagStatusChangedAsync(
+            new TagStatusChangedRealtimeDto(
+                peerTag.Id,
+                peerTag.ExternalId,
+                peerTag.Code,
+                peerTag.Status.ToString(),
+                eventAt),
+            ct);
 
         return Result<Guid>.Success(proximityEvent.Id);
     }

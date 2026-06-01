@@ -4,6 +4,7 @@ using Domain.Abstractions;
 using Domain.Entities;
 using Domain.Enums;
 using MediatR;
+using Application.Common.Realtime;
 
 namespace Application.EventProcessing.Commands;
 
@@ -18,6 +19,7 @@ public sealed class ProcessBatteryLevelReportedCommandHandler : IRequestHandler<
     private readonly IAlarmRepository _alarmRepository;
     private readonly ITagAssignmentRepository _tagAssignmentRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IRealtimeNotifier _realtimeNotifier;
 
     public ProcessBatteryLevelReportedCommandHandler(
         IRawEventRepository rawEventRepository,
@@ -26,7 +28,8 @@ public sealed class ProcessBatteryLevelReportedCommandHandler : IRequestHandler<
         IBatteryEventRepository batteryEventRepository,
         IAlarmRepository alarmRepository,
         ITagAssignmentRepository tagAssignmentRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IRealtimeNotifier realtimeNotifier)
     {
         _rawEventRepository = rawEventRepository;
         _tagRepository = tagRepository;
@@ -35,6 +38,7 @@ public sealed class ProcessBatteryLevelReportedCommandHandler : IRequestHandler<
         _alarmRepository = alarmRepository;
         _tagAssignmentRepository = tagAssignmentRepository;
         _unitOfWork = unitOfWork;
+        _realtimeNotifier = realtimeNotifier;
     }
 
     public async Task<Result<Guid>> Handle(ProcessBatteryLevelReportedCommand request, CancellationToken ct)
@@ -104,10 +108,38 @@ public sealed class ProcessBatteryLevelReportedCommandHandler : IRequestHandler<
                 EventProcessingHelper.Serialize(request.Payload));
 
             await _alarmRepository.AddAsync(alarm, ct);
+
+            await _realtimeNotifier.AlarmRaisedAsync(
+                new AlarmRaisedRealtimeDto(
+                    alarm.Id,
+                    alarm.AlarmType.ToString(),
+                    alarm.Severity.ToString(),
+                    alarm.Status.ToString(),
+                    alarm.Title,
+                    tag.Id,
+                    tag.ExternalId,
+                    null,
+                    null,
+                    anchor.Id,
+                    anchor.ExternalId,
+                    assignment?.UserId,
+                    alarm.StartedAt),
+                ct);
         }
 
         rawEvent.MarkProcessed();
         await _unitOfWork.SaveChangesAsync(ct);
+
+        await _realtimeNotifier.BatteryUpdatedAsync(
+            new BatteryUpdatedRealtimeDto(
+                tag.Id,
+                tag.ExternalId,
+                tag.Code,
+                anchor.Id,
+                anchor.ExternalId,
+                request.Payload.BatteryLevel,
+                eventAt),
+            ct);
 
         return Result<Guid>.Success(batteryEvent.Id);
     }
