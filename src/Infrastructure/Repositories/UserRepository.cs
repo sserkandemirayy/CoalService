@@ -26,6 +26,13 @@ public class UserRepository : IUserRepository
         .AsNoTracking()
         .FirstOrDefaultAsync(u => u.Id == id, ct);
 
+    public async Task<User?> GetByIdWithRolesForUpdateAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _db.Users
+            .Include(u => u.UserRoles)
+            .FirstOrDefaultAsync(u => u.Id == id, ct);
+    }
+
     public async Task AddAsync(User user, CancellationToken ct = default)
         => await _db.Users.AddAsync(user, ct);
 
@@ -63,6 +70,43 @@ public class UserRepository : IUserRepository
         {
             await _db.UserRoles.AddAsync(UserRole.Create(user.Id, role.Id), ct);
         }
+    }
+
+    public async Task AssignRoleAsync(Guid userId, Guid roleId, CancellationToken ct = default)
+    {
+        var existing = await _db.UserRoles
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.RoleId == roleId, ct);
+
+        if (existing is not null)
+        {
+            if (existing.DeletedAt is not null)
+            {
+                existing.DeletedAt = null;
+                existing.DeletedBy = null;
+                existing.UpdatedAt = DateTime.UtcNow;
+            }
+
+            return;
+        }
+
+        await _db.UserRoles.AddAsync(UserRole.Create(userId, roleId), ct);
+    }
+
+    public async Task UnassignRoleAsync(Guid userId, Guid roleId, Guid? deletedBy, CancellationToken ct = default)
+    {
+        var existing = await _db.UserRoles
+            .FirstOrDefaultAsync(x =>
+                x.UserId == userId &&
+                x.RoleId == roleId &&
+                x.DeletedAt == null,
+                ct);
+
+        if (existing is null)
+            return;
+
+        existing.DeletedAt = DateTime.UtcNow;
+        existing.DeletedBy = deletedBy;
     }
 
     public async Task UpdateAsync(User user, CancellationToken ct = default)

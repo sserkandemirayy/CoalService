@@ -6,12 +6,17 @@ public interface IUserRepository
 {
     Task<User?> FindByEmailAsync(string email, CancellationToken ct = default);
     Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default);
+
+    Task<User?> GetByIdWithRolesForUpdateAsync(Guid id, CancellationToken ct = default);
     Task AddAsync(User user, CancellationToken ct = default);
 
     Task<IEnumerable<string>> GetRoleNamesAsync(Guid userId, CancellationToken ct = default);
     Task<IEnumerable<string>> GetPermissionsAsync(Guid userId, CancellationToken ct = default);
 
     Task AssignRoleAsync(User user, Role role, CancellationToken ct = default);
+
+    Task AssignRoleAsync(Guid userId, Guid roleId, CancellationToken ct = default);
+    Task UnassignRoleAsync(Guid userId, Guid roleId, Guid? deletedBy, CancellationToken ct = default);
 
     Task UpdateAsync(User user, CancellationToken ct = default);
     Task RecordLoginSuccessAsync(User user, CancellationToken ct = default);

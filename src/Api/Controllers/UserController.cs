@@ -14,12 +14,32 @@ namespace Api.Controllers;
 [Authorize]
 public class UserController : BaseController
 {
+    //private readonly ISender _mediator;
+    //private readonly IUserTypeRepository _userTypes; // === NEW ===
+    //public UserController(ISender mediator, IUserTypeRepository userTypes) // === NEW ===
+    //{
+    //    _mediator = mediator;
+    //    _userTypes = userTypes;
+    //}
+
     private readonly ISender _mediator;
-    private readonly IUserTypeRepository _userTypes; // === NEW ===
-    public UserController(ISender mediator, IUserTypeRepository userTypes) // === NEW ===
+    private readonly IUserTypeRepository _userTypes;
+    private readonly IUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public UserController(
+        ISender mediator,
+        IUserTypeRepository userTypes,
+        IUserRepository userRepository,
+        IRoleRepository roleRepository,
+        IUnitOfWork unitOfWork)
     {
         _mediator = mediator;
         _userTypes = userTypes;
+        _userRepository = userRepository;
+        _roleRepository = roleRepository;
+        _unitOfWork = unitOfWork;
     }
 
     // ===  GetMe ===
@@ -146,20 +166,64 @@ public class UserController : BaseController
         return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
     }
 
+    //[Authorize(Policy = "ManageRoles")]
+    //[HttpPost("{id}/assign-role/{roleId}")]
+    //public async Task<IActionResult> AssignRole(Guid id, Guid roleId, CancellationToken ct)
+    //{
+    //    var result = await _mediator.Send(new AssignUserRoleCommand(id, roleId, CurrentUserId), ct);
+    //    return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+    //}
+
     [Authorize(Policy = "ManageRoles")]
     [HttpPost("{id}/assign-role/{roleId}")]
     public async Task<IActionResult> AssignRole(Guid id, Guid roleId, CancellationToken ct)
     {
-        var result = await _mediator.Send(new AssignUserRoleCommand(id, roleId, CurrentUserId), ct);
-        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+        var user = await _userRepository.GetByIdAsync(id, ct);
+        if (user is null)
+            return NotFound(new { error = "User not found." });
+
+        var role = await _roleRepository.GetByIdAsync(roleId, ct);
+        if (role is null)
+            return NotFound(new { error = "Role not found." });
+
+        await _userRepository.AssignRoleAsync(id, roleId, ct);
+        var saved = await _unitOfWork.SaveChangesAsync(ct);
+
+        return Ok(new
+        {
+            message = "Role assigned successfully",
+            saved
+        });
     }
+
+    //[Authorize(Policy = "ManageRoles")]
+    //[HttpPost("{id}/remove-role/{roleId}")]
+    //public async Task<IActionResult> RemoveRole(Guid id, Guid roleId, CancellationToken ct)
+    //{
+    //    var result = await _mediator.Send(new RemoveUserRoleCommand(id, roleId, CurrentUserId), ct);
+    //    return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+    //}
 
     [Authorize(Policy = "ManageRoles")]
     [HttpPost("{id}/remove-role/{roleId}")]
     public async Task<IActionResult> RemoveRole(Guid id, Guid roleId, CancellationToken ct)
     {
-        var result = await _mediator.Send(new RemoveUserRoleCommand(id, roleId, CurrentUserId), ct);
-        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+        var user = await _userRepository.GetByIdAsync(id, ct);
+        if (user is null)
+            return NotFound(new { error = "User not found." });
+
+        var role = await _roleRepository.GetByIdAsync(roleId, ct);
+        if (role is null)
+            return NotFound(new { error = "Role not found." });
+
+        await _userRepository.UnassignRoleAsync(id, roleId, CurrentUserId, ct);
+        var saved = await _unitOfWork.SaveChangesAsync(ct);
+
+        return Ok(new
+        {
+            message = "Role removed successfully",
+            saved
+        });
     }
 
     [Authorize]
@@ -195,12 +259,69 @@ public class UserController : BaseController
         return res.IsSuccess ? Ok() : BadRequest(new { error = res.Error });
     }
 
+    //[Authorize(Policy = "ManageRoles")]
+    //[HttpPost("{id}/roles:sync")]
+    //public async Task<IActionResult> SyncRoles(Guid id, [FromBody] SyncUserRolesCommand cmd, CancellationToken ct)
+    //{
+    //    var result = await _mediator.Send(cmd with { UserId = id, PerformedByUserId = CurrentUserId }, ct);
+    //    return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+    //}
+
     [Authorize(Policy = "ManageRoles")]
     [HttpPost("{id}/roles:sync")]
     public async Task<IActionResult> SyncRoles(Guid id, [FromBody] SyncUserRolesCommand cmd, CancellationToken ct)
     {
-        var result = await _mediator.Send(cmd with { UserId = id, PerformedByUserId = CurrentUserId }, ct);
-        return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+        var user = await _userRepository.GetByIdAsync(id, ct);
+        if (user is null)
+            return NotFound(new { error = "User not found." });
+
+        var addedCount = 0;
+        var removedCount = 0;
+        var roleNotFoundCount = 0;
+
+        foreach (var roleId in cmd.Add.Distinct())
+        {
+            if (!Guid.TryParse(roleId, out var myRoleId))
+                continue;
+
+            var role = await _roleRepository.GetByIdAsync(myRoleId, ct);
+            if (role is null)
+            {
+                roleNotFoundCount++;
+                continue;
+            }
+
+            await _userRepository.AssignRoleAsync(id, myRoleId, ct);
+            addedCount++;
+        }
+
+        foreach (var roleId in cmd.Remove.Distinct())
+        {
+            if (!Guid.TryParse(roleId, out var myRoleId))
+                continue;
+
+
+            var role = await _roleRepository.GetByIdAsync(myRoleId, ct);
+            if (role is null)
+            {
+                roleNotFoundCount++;
+                continue;
+            }
+
+            await _userRepository.UnassignRoleAsync(id, myRoleId, CurrentUserId, ct);
+            removedCount++;
+        }
+
+        var saved = await _unitOfWork.SaveChangesAsync(ct);
+
+        return Ok(new
+        {
+            message = "User roles synchronized successfully",
+            addedCount,
+            removedCount,
+            roleNotFoundCount,
+            saved
+        });
     }
 
     [HttpGet("{userId:guid}/companies")]

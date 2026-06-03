@@ -119,7 +119,8 @@ public class RolesController : BaseController
         if (user == null || role == null) return NotFound();
 
         // Reactivate mantığı User.AssignRole içinde olmalı
-        user.AssignRole(role);
+        //user.AssignRole(role);
+        await _userRepository.AssignRoleAsync(dto.UserId, dto.RoleId);
         await _unitOfWork.SaveChangesAsync();
 
         return Ok(new { Message = "Role assigned successfully" });
@@ -137,7 +138,7 @@ public class RolesController : BaseController
             foreach (var roleId in dto.Roles)
             {
                 var role = await _roleRepository.GetByIdAsync(roleId);
-                if (role != null) user.AssignRole(role); // içinde reactivation kontrolü var
+                if (role != null) await _userRepository.AssignRoleAsync(userId, roleId); //user.AssignRole(role); // içinde reactivation kontrolü var
             }
         }
 
@@ -157,7 +158,7 @@ public class RolesController : BaseController
             foreach (var roleId in dto.Roles)
             {
                 var role = await _roleRepository.GetByIdAsync(roleId);
-                if (role != null) user.RemoveRole(role);
+                if (role != null) await _userRepository.UnassignRoleAsync(userId, roleId, CurrentUserId); //user.RemoveRole(role);
             }
         }
 
@@ -166,28 +167,73 @@ public class RolesController : BaseController
     }
 
     // === Sync Roles (add/remove aynı anda) ===
-    [HttpPost("sync")]
-    public async Task<IActionResult> SyncRoles([FromBody] SyncRolesDto dto)
-    {
-        foreach (var userId in dto.Users)
-        {
-            var user = await _userRepository.GetByIdAsync(userId);
-            if (user == null) continue;
+    //[HttpPost("sync")]
+    //public async Task<IActionResult> SyncRoles([FromBody] SyncRolesDto dto)
+    //{
+    //    foreach (var userId in dto.Users)
+    //    {
+    //        //var user = await _userRepository.GetByIdAsync(userId);
+    //        var user = await _userRepository.GetByIdWithRolesForUpdateAsync(userId);
+    //        if (user == null) continue;
 
-            foreach (var addId in dto.Add)
+    //        foreach (var addId in dto.Add)
+    //        {
+    //            var role = await _roleRepository.GetByIdAsync(addId);
+    //            if (role != null) user.AssignRole(role);
+    //        }
+
+    //        foreach (var removeId in dto.Remove)
+    //        {
+    //            var role = await _roleRepository.GetByIdAsync(removeId);
+    //            if (role != null) user.RemoveRole(role);
+    //        }
+    //    }
+
+    //    //await _unitOfWork.SaveChangesAsync();
+    //    //return Ok(new { Message = "Roles synchronized successfully" });
+
+    //    var saved = await _unitOfWork.SaveChangesAsync();
+
+    //    return Ok(new
+    //    {
+    //        Message = "Roles synchronized successfully",
+    //        Saved = saved
+    //    });
+
+
+    //}
+
+    [HttpPost("sync")]
+    public async Task<IActionResult> SyncRoles([FromBody] SyncRolesDto dto, CancellationToken ct)
+    {
+        foreach (var userId in dto.Users.Distinct())
+        {
+            var user = await _userRepository.GetByIdAsync(userId, ct);
+            if (user is null) continue;
+
+            foreach (var addId in dto.Add.Distinct())
             {
-                var role = await _roleRepository.GetByIdAsync(addId);
-                if (role != null) user.AssignRole(role);
+                var role = await _roleRepository.GetByIdAsync(addId, ct);
+                if (role is null) continue;
+
+                await _userRepository.AssignRoleAsync(userId, addId, ct);
             }
 
-            foreach (var removeId in dto.Remove)
+            foreach (var removeId in dto.Remove.Distinct())
             {
-                var role = await _roleRepository.GetByIdAsync(removeId);
-                if (role != null) user.RemoveRole(role);
+                var role = await _roleRepository.GetByIdAsync(removeId, ct);
+                if (role is null) continue;
+
+                await _userRepository.UnassignRoleAsync(userId, removeId, CurrentUserId, ct);
             }
         }
 
-        await _unitOfWork.SaveChangesAsync();
-        return Ok(new { Message = "Roles synchronized successfully" });
+        var saved = await _unitOfWork.SaveChangesAsync(ct);
+
+        return Ok(new
+        {
+            Message = "Roles synchronized successfully",
+            Saved = saved
+        });
     }
 }
