@@ -3,6 +3,8 @@ using Domain.Abstractions;
 using Domain.Entities;
 using MediatR;
 
+namespace Application.Users.Commands;
+
 public record DeactivateUserCommand(Guid UserId, Guid PerformedByUserId) : IRequest<Result<Unit>>;
 
 public class DeactivateUserHandler : IRequestHandler<DeactivateUserCommand, Result<Unit>>
@@ -11,7 +13,10 @@ public class DeactivateUserHandler : IRequestHandler<DeactivateUserCommand, Resu
     private readonly IUnitOfWork _uow;
     private readonly IAuditLogRepository _audit;
 
-    public DeactivateUserHandler(IUserRepository users, IUnitOfWork uow, IAuditLogRepository audit)
+    public DeactivateUserHandler(
+        IUserRepository users,
+        IUnitOfWork uow,
+        IAuditLogRepository audit)
     {
         _users = users;
         _uow = uow;
@@ -20,12 +25,15 @@ public class DeactivateUserHandler : IRequestHandler<DeactivateUserCommand, Resu
 
     public async Task<Result<Unit>> Handle(DeactivateUserCommand request, CancellationToken ct)
     {
-        var user = await _users.GetByIdAsync(request.UserId, ct);
+        var user = await _users.GetByIdSingleAsync(request.UserId, ct);
+
         if (user is null)
             return Result<Unit>.Failure("User not found");
 
+        if (!user.IsActive)
+            return Result<Unit>.Success(Unit.Value);
+
         user.Deactivate();
-        await _users.UpdateAsync(user, ct);
 
         await _audit.AddAsync(AuditLog.Create(
             request.PerformedByUserId,
@@ -37,6 +45,7 @@ public class DeactivateUserHandler : IRequestHandler<DeactivateUserCommand, Resu
         ), ct);
 
         await _uow.SaveChangesAsync(ct);
+
         return Result<Unit>.Success(Unit.Value);
     }
 }

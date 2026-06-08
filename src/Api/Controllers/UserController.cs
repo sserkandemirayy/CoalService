@@ -164,6 +164,8 @@ public class UserController : BaseController
     {
         var result = await _mediator.Send(new ActivateUserCommand(id, CurrentUserId), ct);
         return result.IsSuccess ? Ok() : BadRequest(new { error = result.Error });
+
+
     }
 
     //[Authorize(Policy = "ManageRoles")]

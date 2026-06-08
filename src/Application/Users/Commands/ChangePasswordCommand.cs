@@ -29,7 +29,7 @@ public class ChangePasswordHandler : IRequestHandler<ChangePasswordCommand, Resu
 
     public async Task<Result<Unit>> Handle(ChangePasswordCommand request, CancellationToken ct)
     {
-        var user = await _users.GetByIdAsync(request.UserId, ct);
+        var user = await _users.GetByIdSingleAsync(request.UserId, ct);
         if (user is null)
             return Result<Unit>.Failure("User not found");
 

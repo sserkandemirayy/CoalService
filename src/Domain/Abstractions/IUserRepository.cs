@@ -7,6 +7,8 @@ public interface IUserRepository
     Task<User?> FindByEmailAsync(string email, CancellationToken ct = default);
     Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default);
 
+    Task<User?> GetByIdSingleAsync(Guid id, CancellationToken ct = default);
+
     Task<User?> GetByIdWithRolesForUpdateAsync(Guid id, CancellationToken ct = default);
     Task AddAsync(User user, CancellationToken ct = default);
 
@@ -55,5 +57,8 @@ public interface IUserRepository
 
     Task<IEnumerable<User>> GetPatientsAsync(CancellationToken ct);
     Task<User?> GetPatientByIdAsync(Guid id, CancellationToken ct = default);
+
+    
+
 }
 

@@ -26,6 +26,12 @@ public class UserRepository : IUserRepository
         .AsNoTracking()
         .FirstOrDefaultAsync(u => u.Id == id, ct);
 
+    public async Task<User?> GetByIdSingleAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _db.Users
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+    }
+
     public async Task<User?> GetByIdWithRolesForUpdateAsync(Guid id, CancellationToken ct = default)
     {
         return await _db.Users
@@ -284,6 +290,12 @@ public class UserRepository : IUserRepository
                 u.UserType != null &&
                 u.UserType.Code != null &&
                 u.UserType.Code.ToLower() == "patient", ct);
+
+    public async Task<User?> GetByIdSlim(Guid id, CancellationToken ct = default)
+    {
+        return await _db.Users
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+    }
 
 
 }
