@@ -1708,6 +1708,82 @@ public static class SeedData
 
         db.SaveChanges();
 
+        // === FLOOR MAPS / RTLS MAP SEED ===
+        if (!db.FloorMaps.Any())
+        {
+            var companyM= db.Companies.FirstOrDefault();
+            var branch = db.Branches.FirstOrDefault();
+
+            var map = FloorMap.Create(
+                "MAP-MINE-DEMO-001",
+                "Demo Maden Haritası",
+                "RTLS demo haritası. Calibration identity olarak başlatıldı.",
+                companyM?.Id,
+                branch?.Id,
+                100,
+                100,
+                "meter"
+            );
+
+            db.FloorMaps.Add(map);
+            db.SaveChanges();
+
+            var calibration = FloorMapCalibration.CreateIdentity(map.Id);
+            db.FloorMapCalibrations.Add(calibration);
+
+            var anchors = db.Anchors
+                .OrderBy(x => x.Code)
+                .Take(4)
+                .ToList();
+
+            if (anchors.Count > 0)
+            {
+                var positions = new List<(decimal x, decimal y, decimal z)>
+        {
+            (0, 0, 0),
+            (100, 0, 0),
+            (100, 100, 0),
+            (0, 100, 0)
+        };
+
+                for (var i = 0; i < anchors.Count; i++)
+                {
+                    db.AnchorMapPositions.Add(
+                        AnchorMapPosition.Create(
+                            map.Id,
+                            anchors[i].Id,
+                            positions[i].x,
+                            positions[i].y,
+                            positions[i].z,
+                            null,
+                            "{\"Seed\":true}"
+                        )
+                    );
+                }
+            }
+
+            db.FloorMapZones.AddRange(
+                FloorMapZone.Create(
+                    map.Id,
+                    "Ana Çalışma Alanı",
+                    FloorMapZoneType.Normal,
+                    "[{\"x\":0,\"y\":0},{\"x\":100,\"y\":0},{\"x\":100,\"y\":100},{\"x\":0,\"y\":100}]",
+                    "#4CAF50"
+                ),
+                FloorMapZone.Create(
+                    map.Id,
+                    "Riskli Bölge",
+                    FloorMapZoneType.Dangerous,
+                    "[{\"x\":70,\"y\":70},{\"x\":95,\"y\":70},{\"x\":95,\"y\":95},{\"x\":70,\"y\":95}]",
+                    "#F44336"
+                )
+            );
+
+            db.SaveChanges();
+
+            Console.WriteLine("✓ Demo map, identity calibration, anchor positions ve zones oluşturuldu.");
+        }
+
         Console.WriteLine("✓ RTLS demo verileri tamamlandı.");
 
         Console.WriteLine();

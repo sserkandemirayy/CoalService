@@ -89,6 +89,13 @@ public class AppDbContext : DbContext
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
+    //MAPS
+    public DbSet<FloorMap> FloorMaps => Set<FloorMap>();
+    public DbSet<FloorMapFile> FloorMapFiles => Set<FloorMapFile>();
+    public DbSet<FloorMapCalibration> FloorMapCalibrations => Set<FloorMapCalibration>();
+    public DbSet<AnchorMapPosition> AnchorMapPositions => Set<AnchorMapPosition>();
+    public DbSet<FloorMapZone> FloorMapZones => Set<FloorMapZone>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
 
@@ -1126,6 +1133,143 @@ public class AppDbContext : DbContext
             entity.HasIndex(x => x.AggregateId);
             entity.HasIndex(x => x.OccurredAt);
             entity.HasIndex(x => new { x.Status, x.OccurredAt });
+        });
+
+        //MAPS
+        // ==== FloorMap ====
+        modelBuilder.Entity<FloorMap>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Code).IsRequired().HasMaxLength(100);
+            entity.Property(x => x.Name).IsRequired().HasMaxLength(200);
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.Property(x => x.Width).HasPrecision(18, 6);
+            entity.Property(x => x.Height).HasPrecision(18, 6);
+            entity.Property(x => x.Unit).IsRequired().HasMaxLength(50);
+            entity.Property(x => x.IsActive).HasDefaultValue(true);
+
+            entity.HasIndex(x => x.Code)
+                  .IsUnique()
+                  .HasFilter("\"DeletedAt\" IS NULL");
+
+            entity.HasIndex(x => x.CompanyId);
+            entity.HasIndex(x => x.BranchId);
+            entity.HasIndex(x => x.IsActive);
+
+            entity.HasOne(x => x.Company)
+                  .WithMany()
+                  .HasForeignKey(x => x.CompanyId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.Branch)
+                  .WithMany()
+                  .HasForeignKey(x => x.BranchId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ==== FloorMapFile ====
+        modelBuilder.Entity<FloorMapFile>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.FileType).HasConversion<string>().HasMaxLength(50);
+            entity.Property(x => x.OriginalFileName).IsRequired().HasMaxLength(300);
+            entity.Property(x => x.StoredFileName).IsRequired().HasMaxLength(300);
+            entity.Property(x => x.ContentType).IsRequired().HasMaxLength(150);
+            entity.Property(x => x.StoragePath).IsRequired().HasMaxLength(1000);
+            entity.Property(x => x.IsActive).HasDefaultValue(true);
+
+            entity.HasIndex(x => x.FloorMapId);
+            entity.HasIndex(x => x.FileType);
+            entity.HasIndex(x => new { x.FloorMapId, x.FileType, x.Version });
+
+            entity.HasOne(x => x.FloorMap)
+                  .WithMany(x => x.Files)
+                  .HasForeignKey(x => x.FloorMapId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ==== FloorMapCalibration ====
+        modelBuilder.Entity<FloorMapCalibration>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Name).IsRequired().HasMaxLength(200);
+
+            entity.Property(x => x.SourceOriginX).HasPrecision(18, 6);
+            entity.Property(x => x.SourceOriginY).HasPrecision(18, 6);
+            entity.Property(x => x.SourceOriginZ).HasPrecision(18, 6);
+
+            entity.Property(x => x.MapOriginX).HasPrecision(18, 6);
+            entity.Property(x => x.MapOriginY).HasPrecision(18, 6);
+            entity.Property(x => x.MapOriginZ).HasPrecision(18, 6);
+
+            entity.Property(x => x.ScaleX).HasPrecision(18, 6);
+            entity.Property(x => x.ScaleY).HasPrecision(18, 6);
+            entity.Property(x => x.ScaleZ).HasPrecision(18, 6);
+
+            entity.Property(x => x.RotationDegrees).HasPrecision(18, 6);
+
+            entity.Property(x => x.IsDefault).HasDefaultValue(false);
+            entity.Property(x => x.IsActive).HasDefaultValue(true);
+
+            entity.HasIndex(x => x.FloorMapId);
+            entity.HasIndex(x => new { x.FloorMapId, x.IsDefault });
+
+            entity.HasOne(x => x.FloorMap)
+                  .WithMany(x => x.Calibrations)
+                  .HasForeignKey(x => x.FloorMapId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ==== AnchorMapPosition ====
+        modelBuilder.Entity<AnchorMapPosition>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.X).HasPrecision(18, 6);
+            entity.Property(x => x.Y).HasPrecision(18, 6);
+            entity.Property(x => x.Z).HasPrecision(18, 6);
+            entity.Property(x => x.Rotation).HasPrecision(18, 6);
+            entity.Property(x => x.MetadataJson).HasColumnType("jsonb");
+
+            entity.HasIndex(x => new { x.FloorMapId, x.AnchorId })
+                  .IsUnique()
+                  .HasFilter("\"DeletedAt\" IS NULL");
+
+            entity.HasIndex(x => x.AnchorId);
+
+            entity.HasOne(x => x.FloorMap)
+                  .WithMany(x => x.AnchorPositions)
+                  .HasForeignKey(x => x.FloorMapId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Anchor)
+                  .WithMany()
+                  .HasForeignKey(x => x.AnchorId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ==== FloorMapZone ====
+        modelBuilder.Entity<FloorMapZone>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Name).IsRequired().HasMaxLength(200);
+            entity.Property(x => x.ZoneType).HasConversion<string>().HasMaxLength(50);
+            entity.Property(x => x.Color).HasMaxLength(50);
+            entity.Property(x => x.GeometryJson).IsRequired().HasColumnType("jsonb");
+            entity.Property(x => x.IsActive).HasDefaultValue(true);
+
+            entity.HasIndex(x => x.FloorMapId);
+            entity.HasIndex(x => x.ZoneType);
+            entity.HasIndex(x => x.IsActive);
+
+            entity.HasOne(x => x.FloorMap)
+                  .WithMany(x => x.Zones)
+                  .HasForeignKey(x => x.FloorMapId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         // ==== Global Soft-Delete Filter ====

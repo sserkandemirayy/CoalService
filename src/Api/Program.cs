@@ -5,6 +5,7 @@ using Api.Hubs;
 using Application.Common.Realtime;
 using Application.Common.Behaviors;
 using Application.Common.Options;
+using Application.Common.Maps;
 using Domain.Abstractions;
 using Domain.Entities;
 using FluentValidation;
@@ -115,6 +116,11 @@ builder.Services.AddScoped<ICommandRequestRepository, CommandRequestRepository>(
 builder.Services.AddScoped<ICommandStatusHistoryRepository, CommandStatusHistoryRepository>();
 
 builder.Services.AddScoped<IOutboxMessageRepository, OutboxMessageRepository>();
+
+builder.Services.AddScoped<IFloorMapRepository, FloorMapRepository>();
+builder.Services.AddScoped<IMapFileStorageService, LocalMapFileStorageService>();
+builder.Services.AddScoped<IMapCoordinateTransformer, MapCoordinateTransformer>();
+
 builder.Services.AddScoped<IntegrationApiKeyFilter>();
 
 builder.Services.AddSignalR();
