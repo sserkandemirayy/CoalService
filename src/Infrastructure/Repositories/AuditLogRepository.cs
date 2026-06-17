@@ -27,7 +27,8 @@ public class AuditLogRepository : IAuditLogRepository
         var query = _db.AuditLogs.AsQueryable();
 
         if (userId.HasValue)
-            query = query.Where(x => x.UserId == userId);
+            //query = query.Where(x => x.UserId == userId);
+             query = query.Where(x => x.UserId == userId.Value);
 
         if (!string.IsNullOrWhiteSpace(action))
             query = query.Where(x => x.Action.Contains(action));
