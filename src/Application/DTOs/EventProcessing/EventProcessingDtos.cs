@@ -2,6 +2,7 @@
 
 public sealed record UsedAnchorPayloadDto(string AnchorId);
 
+
 public sealed record LocationCalculatedPayloadDto(
     Guid Id,
     string Type,
@@ -12,7 +13,8 @@ public sealed record LocationCalculatedPayloadDto(
     decimal Z,
     decimal Accuracy,
     decimal Confidence,
-    List<UsedAnchorPayloadDto> UsedAnchors
+    List<UsedAnchorPayloadDto> UsedAnchors,
+    Guid? FloorMapId = null
 );
 
 public sealed record EmergencyButtonPressedPayloadDto(
@@ -86,6 +88,8 @@ public sealed record LocationEventDto(
     Guid Id,
     Guid RawEventId,
     Guid TagId,
+    Guid? FloorMapId,
+    Guid? FloorMapZoneId,
     DateTime EventTimestamp,
     decimal X,
     decimal Y,

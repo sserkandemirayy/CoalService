@@ -1,9 +1,10 @@
-﻿using Application.Common.Models;
+﻿using Application.Common.Maps;
+using Application.Common.Models;
+using Application.Common.Realtime;
 using Application.DTOs.EventProcessing;
 using Domain.Abstractions;
 using Domain.Entities;
 using MediatR;
-using Application.Common.Realtime;
 
 namespace Application.EventProcessing.Commands;
 
@@ -16,6 +17,9 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
     private readonly ILocationEventRepository _locationEventRepository;
     private readonly ICurrentLocationRepository _currentLocationRepository;
     private readonly ITagAssignmentRepository _tagAssignmentRepository;
+    private readonly IFloorMapRepository _floorMapRepository;
+    private readonly IMapCoordinateTransformer _coordinateTransformer;
+    private readonly IMapZoneResolver _zoneResolver;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IRealtimeNotifier _realtimeNotifier;
 
@@ -25,6 +29,9 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
         ILocationEventRepository locationEventRepository,
         ICurrentLocationRepository currentLocationRepository,
         ITagAssignmentRepository tagAssignmentRepository,
+        IFloorMapRepository floorMapRepository,
+        IMapCoordinateTransformer coordinateTransformer,
+        IMapZoneResolver zoneResolver,
         IUnitOfWork unitOfWork,
         IRealtimeNotifier realtimeNotifier)
     {
@@ -33,6 +40,9 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
         _locationEventRepository = locationEventRepository;
         _currentLocationRepository = currentLocationRepository;
         _tagAssignmentRepository = tagAssignmentRepository;
+        _floorMapRepository = floorMapRepository;
+        _coordinateTransformer = coordinateTransformer;
+        _zoneResolver = zoneResolver;
         _unitOfWork = unitOfWork;
         _realtimeNotifier = realtimeNotifier;
     }
@@ -63,17 +73,52 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
         }
 
         var usedAnchorsJson = EventProcessingHelper.Serialize(request.Payload.UsedAnchors);
+        var anchorCount = request.Payload.UsedAnchors?.Count ?? 0;
+
+        var floorMap = await ResolveFloorMapAsync(request.Payload, ct);
+        FloorMapCalibration? calibration = null;
+
+        if (floorMap is not null)
+            calibration = await _floorMapRepository.GetDefaultCalibrationAsync(floorMap.Id, ct);
+
+        var mapX = request.Payload.X;
+        var mapY = request.Payload.Y;
+        var mapZ = request.Payload.Z;
+
+        if (calibration is not null)
+        {
+            var mapped = _coordinateTransformer.TransformToMap(
+                calibration,
+                request.Payload.X,
+                request.Payload.Y,
+                request.Payload.Z);
+
+            mapX = mapped.X;
+            mapY = mapped.Y;
+            mapZ = mapped.Z;
+        }
+
+        Guid? floorMapId = floorMap?.Id;
+        Guid? floorMapZoneId = null;
+
+        if (floorMap is not null)
+        {
+            var zones = await _floorMapRepository.GetZonesAsync(floorMap.Id, ct);
+            floorMapZoneId = _zoneResolver.ResolveZoneId(zones, mapX, mapY);
+        }
 
         var locationEvent = LocationEvent.Create(
             rawEvent.Id,
             tag.Id,
             eventAt,
-            request.Payload.X,
-            request.Payload.Y,
-            request.Payload.Z,
+            mapX,
+            mapY,
+            mapZ,
             request.Payload.Accuracy,
             request.Payload.Confidence,
-            usedAnchorsJson);
+            usedAnchorsJson,
+            floorMapId,
+            floorMapZoneId);
 
         await _locationEventRepository.AddAsync(locationEvent, ct);
 
@@ -82,21 +127,22 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
 
         var activeAssignment = await _tagAssignmentRepository.GetActiveByTagIdAsync(tag.Id, ct);
         var currentLocation = await _currentLocationRepository.GetByTagIdAsync(tag.Id, ct);
-        var anchorCount = request.Payload.UsedAnchors?.Count ?? 0;
 
         if (currentLocation is null)
         {
             currentLocation = CurrentLocation.Create(
                 tag.Id,
                 activeAssignment?.UserId,
-                request.Payload.X,
-                request.Payload.Y,
-                request.Payload.Z,
+                mapX,
+                mapY,
+                mapZ,
                 request.Payload.Accuracy,
                 request.Payload.Confidence,
                 eventAt,
                 rawEvent.Id,
-                anchorCount);
+                anchorCount,
+                floorMapId,
+                floorMapZoneId);
 
             await _currentLocationRepository.AddAsync(currentLocation, ct);
         }
@@ -104,14 +150,16 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
         {
             currentLocation.UpdateFromLocation(
                 activeAssignment?.UserId,
-                request.Payload.X,
-                request.Payload.Y,
-                request.Payload.Z,
+                mapX,
+                mapY,
+                mapZ,
                 request.Payload.Accuracy,
                 request.Payload.Confidence,
                 eventAt,
                 rawEvent.Id,
-                anchorCount);
+                anchorCount,
+                floorMapId,
+                floorMapZoneId);
 
             await _currentLocationRepository.UpdateAsync(currentLocation, ct);
         }
@@ -125,9 +173,11 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
                 tag.ExternalId,
                 tag.Code,
                 activeAssignment?.UserId,
-                request.Payload.X,
-                request.Payload.Y,
-                request.Payload.Z,
+                floorMapId,
+                floorMapZoneId,
+                mapX,
+                mapY,
+                mapZ,
                 request.Payload.Accuracy,
                 request.Payload.Confidence,
                 eventAt,
@@ -144,5 +194,33 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
             ct);
 
         return Result<Guid>.Success(locationEvent.Id);
+    }
+
+    private async Task<FloorMap?> ResolveFloorMapAsync(
+        LocationCalculatedPayloadDto payload,
+        CancellationToken ct)
+    {
+        if (payload.FloorMapId.HasValue)
+        {
+            var map = await _floorMapRepository.GetByIdAsync(payload.FloorMapId.Value, ct);
+
+            if (map is not null && map.IsActive)
+                return map;
+        }
+
+        var usedAnchorIds = payload.UsedAnchors?
+            .Select(x => x.AnchorId)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToList() ?? new List<string>();
+
+        if (usedAnchorIds.Count > 0)
+        {
+            var map = await _floorMapRepository.GetActiveMapByUsedAnchorExternalIdsAsync(usedAnchorIds, ct);
+
+            if (map is not null)
+                return map;
+        }
+
+        return null;
     }
 }

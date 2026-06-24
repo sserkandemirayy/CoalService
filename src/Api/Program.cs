@@ -6,6 +6,7 @@ using Application.Common.Realtime;
 using Application.Common.Behaviors;
 using Application.Common.Options;
 using Application.Common.Maps;
+using Application.Dashboard;
 using Domain.Abstractions;
 using Domain.Entities;
 using FluentValidation;
@@ -20,6 +21,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -120,6 +122,9 @@ builder.Services.AddScoped<IOutboxMessageRepository, OutboxMessageRepository>();
 builder.Services.AddScoped<IFloorMapRepository, FloorMapRepository>();
 builder.Services.AddScoped<IMapFileStorageService, LocalMapFileStorageService>();
 builder.Services.AddScoped<IMapCoordinateTransformer, MapCoordinateTransformer>();
+
+builder.Services.AddScoped<IDashboardReadRepository, DashboardReadRepository>();
+builder.Services.AddScoped<IMapZoneResolver, MapZoneResolver>();
 
 builder.Services.AddScoped<IntegrationApiKeyFilter>();
 

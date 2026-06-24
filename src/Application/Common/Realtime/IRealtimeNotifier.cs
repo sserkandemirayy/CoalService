@@ -12,15 +12,17 @@ public interface IRealtimeNotifier
 public sealed record LocationUpdatedRealtimeDto(
     Guid TagId,
     string TagExternalId,
-    string? TagCode,
+    string TagCode,
     Guid? UserId,
+    Guid? FloorMapId,
+    Guid? FloorMapZoneId,
     decimal X,
     decimal Y,
     decimal Z,
     decimal Accuracy,
     decimal Confidence,
-    DateTime EventTimestamp,
-    int UsedAnchorCount
+    DateTime EventAt,
+    int AnchorCount
 );
 
 public sealed record BatteryUpdatedRealtimeDto(

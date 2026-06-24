@@ -150,5 +150,29 @@ public class FloorMapRepository : IFloorMapRepository
         return Task.CompletedTask;
     }
 
+    public async Task<FloorMap?> GetActiveMapByUsedAnchorExternalIdsAsync(
+    IEnumerable<string> anchorExternalIds,
+    CancellationToken ct = default)
+    {
+        var ids = anchorExternalIds
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
+            return null;
+
+        return await _db.AnchorMapPositions
+            .Include(x => x.Anchor)
+            .Include(x => x.FloorMap)
+            .Where(x =>
+                ids.Contains(x.Anchor.ExternalId) &&
+                x.FloorMap.IsActive)
+            .OrderBy(x => x.FloorMap.Code)
+            .Select(x => x.FloorMap)
+            .FirstOrDefaultAsync(ct);
+    }
+
     public IQueryable<FloorMap> Query() => _db.FloorMaps.AsQueryable();
 }

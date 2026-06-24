@@ -448,6 +448,8 @@ public class AppDbContext : DbContext
             entity.Property(x => x.UsedAnchorsJson).IsRequired().HasColumnType("jsonb");
 
             entity.HasIndex(x => x.TagId);
+            entity.HasIndex(x => x.FloorMapId);
+            entity.HasIndex(x => x.FloorMapZoneId);
             entity.HasIndex(x => x.EventTimestamp);
             entity.HasIndex(x => new { x.TagId, x.EventTimestamp });
 
@@ -460,6 +462,16 @@ public class AppDbContext : DbContext
                   .WithMany(x => x.LocationEvents)
                   .HasForeignKey(x => x.TagId)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.FloorMap)
+                  .WithMany()
+                  .HasForeignKey(x => x.FloorMapId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.FloorMapZone)
+                  .WithMany()
+                  .HasForeignKey(x => x.FloorMapZoneId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         // ==== CurrentLocation ====
@@ -475,6 +487,8 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(x => x.TagId).IsUnique();
             entity.HasIndex(x => x.UserId);
+            entity.HasIndex(x => x.FloorMapId);
+            entity.HasIndex(x => x.FloorMapZoneId);
             entity.HasIndex(x => x.LastEventAt);
 
             entity.HasOne(x => x.Tag)
@@ -485,6 +499,16 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.User)
                   .WithMany()
                   .HasForeignKey(x => x.UserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.FloorMap)
+                  .WithMany()
+                  .HasForeignKey(x => x.FloorMapId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.FloorMapZone)
+                  .WithMany()
+                  .HasForeignKey(x => x.FloorMapZoneId)
                   .OnDelete(DeleteBehavior.SetNull);
         });
 

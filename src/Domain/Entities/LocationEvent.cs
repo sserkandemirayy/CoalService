@@ -12,6 +12,12 @@ public class LocationEvent : BaseEntity
     public Guid TagId { get; private set; }
     public Tag Tag { get; private set; } = default!;
 
+    public Guid? FloorMapId { get; private set; }
+    public FloorMap? FloorMap { get; private set; }
+
+    public Guid? FloorMapZoneId { get; private set; }
+    public FloorMapZone? FloorMapZone { get; private set; }
+
     public DateTime EventTimestamp { get; private set; }
 
     public decimal X { get; private set; }
@@ -32,14 +38,19 @@ public class LocationEvent : BaseEntity
         decimal z,
         decimal accuracy,
         decimal confidence,
-        string usedAnchorsJson)
+        string usedAnchorsJson,
+        Guid? floorMapId = null,
+        Guid? floorMapZoneId = null)
     {
         if (rawEventId == Guid.Empty)
             throw new ArgumentException("RawEventId is required.", nameof(rawEventId));
+
         if (tagId == Guid.Empty)
             throw new ArgumentException("TagId is required.", nameof(tagId));
+
         if (accuracy < 0)
             throw new ArgumentOutOfRangeException(nameof(accuracy));
+
         if (confidence < 0 || confidence > 100)
             throw new ArgumentOutOfRangeException(nameof(confidence));
 
@@ -47,6 +58,8 @@ public class LocationEvent : BaseEntity
         {
             RawEventId = rawEventId,
             TagId = tagId,
+            FloorMapId = floorMapId,
+            FloorMapZoneId = floorMapZoneId,
             EventTimestamp = eventTimestamp,
             X = x,
             Y = y,

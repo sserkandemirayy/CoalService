@@ -29,18 +29,20 @@ public sealed class GetLocationEventsByTagIdQueryHandler : IRequestHandler<GetLo
             ct);
 
         var dto = items
-            .Select(x => new LocationEventDto(
-                x.Id,
-                x.RawEventId,
-                x.TagId,
-                x.EventTimestamp,
-                x.X,
-                x.Y,
-                x.Z,
-                x.Accuracy,
-                x.Confidence,
-                x.UsedAnchorsJson))
-            .ToList();
+                .Select(x => new LocationEventDto(
+                    x.Id,
+                    x.RawEventId,
+                    x.TagId,
+                    x.FloorMapId,
+                    x.FloorMapZoneId,
+                    x.EventTimestamp,
+                    x.X,
+                    x.Y,
+                    x.Z,
+                    x.Accuracy,
+                    x.Confidence,
+                    x.UsedAnchorsJson))
+                .ToList();
 
         return Result<IReadOnlyList<LocationEventDto>>.Success(dto);
     }

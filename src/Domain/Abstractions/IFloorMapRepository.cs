@@ -30,5 +30,7 @@ public interface IFloorMapRepository
     Task AddZoneAsync(FloorMapZone zone, CancellationToken ct = default);
     Task UpdateZoneAsync(FloorMapZone zone, CancellationToken ct = default);
 
+    Task<FloorMap?> GetActiveMapByUsedAnchorExternalIdsAsync(IEnumerable<string> anchorExternalIds, CancellationToken ct = default);
+
     IQueryable<FloorMap> Query();
 }

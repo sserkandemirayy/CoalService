@@ -12,6 +12,12 @@ public class CurrentLocation : BaseEntity
     public Guid? UserId { get; private set; }
     public User? User { get; private set; }
 
+    public Guid? FloorMapId { get; private set; }
+    public FloorMap? FloorMap { get; private set; }
+
+    public Guid? FloorMapZoneId { get; private set; }
+    public FloorMapZone? FloorMapZone { get; private set; }
+
     public decimal X { get; private set; }
     public decimal Y { get; private set; }
     public decimal Z { get; private set; }
@@ -34,10 +40,13 @@ public class CurrentLocation : BaseEntity
         decimal confidence,
         DateTime lastEventAt,
         Guid lastRawEventId,
-        int lastKnownAnchorCount = 0)
+        int lastKnownAnchorCount = 0,
+        Guid? floorMapId = null,
+        Guid? floorMapZoneId = null)
     {
         if (tagId == Guid.Empty)
             throw new ArgumentException("TagId is required.", nameof(tagId));
+
         if (lastRawEventId == Guid.Empty)
             throw new ArgumentException("LastRawEventId is required.", nameof(lastRawEventId));
 
@@ -45,6 +54,8 @@ public class CurrentLocation : BaseEntity
         {
             TagId = tagId,
             UserId = userId,
+            FloorMapId = floorMapId,
+            FloorMapZoneId = floorMapZoneId,
             X = x,
             Y = y,
             Z = z,
@@ -65,9 +76,13 @@ public class CurrentLocation : BaseEntity
         decimal confidence,
         DateTime lastEventAt,
         Guid lastRawEventId,
-        int lastKnownAnchorCount)
+        int lastKnownAnchorCount,
+        Guid? floorMapId = null,
+        Guid? floorMapZoneId = null)
     {
         UserId = userId;
+        FloorMapId = floorMapId;
+        FloorMapZoneId = floorMapZoneId;
         X = x;
         Y = y;
         Z = z;
