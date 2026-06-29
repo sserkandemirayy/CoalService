@@ -1,4 +1,4 @@
-﻿using Application.Common.Models;
+using Application.Common.Models;
 using Application.DTOs.EventProcessing;
 using Domain.Abstractions;
 using Domain.Entities;
@@ -87,7 +87,7 @@ public sealed class ProcessAnchorConfigReportedCommandHandler : IRequestHandler<
 
             await _snapshots.AddAsync(snapshot, ct);
         }
-        else
+        else if (eventAt >= snapshot.LastReportedAt)
         {
             snapshot.UpdateSnapshot(
                 raw.Id,

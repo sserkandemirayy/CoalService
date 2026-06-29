@@ -6,6 +6,7 @@ using Application.Common.Realtime;
 using Application.Common.Behaviors;
 using Application.Common.Options;
 using Application.Common.Maps;
+using Application.Common.Notifications;
 using Application.Dashboard;
 using Domain.Abstractions;
 using Domain.Entities;
@@ -131,6 +132,12 @@ builder.Services.AddScoped<IntegrationApiKeyFilter>();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IRealtimeNotifier, SignalRRealtimeNotifier>();
 
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
+builder.Services.AddScoped<INotificationTargetResolver, NotificationTargetResolver>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationSignalRNotifier, NotificationSignalRNotifier>();
+
 // MediatR - Validation
 builder.Services.AddMediatR(cfg =>
 {
@@ -164,6 +171,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwtSection.GetValue<string>("Issuer"),
             ValidAudience = jwtSection.GetValue<string>("Audience"),
             IssuerSigningKey = key
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    (path.StartsWithSegments("/hubs/tracking") ||
+                     path.StartsWithSegments("/hubs/notifications")))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -376,6 +401,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<TrackingHub>("/hubs/tracking");
+app.MapHub<NotificationHub>("/hubs/notifications");
+
 app.MapGet("/health", () => Results.Ok("OK"));
 
 app.Run();

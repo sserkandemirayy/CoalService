@@ -5,6 +5,7 @@ using Domain.Entities;
 using Domain.Enums;
 using MediatR;
 using Application.Common.Realtime;
+using Application.Common.Notifications;
 
 namespace Application.EventProcessing.Commands;
 
@@ -19,6 +20,7 @@ public sealed class ProcessEmergencyButtonPressedCommandHandler : IRequestHandle
     private readonly ITagAssignmentRepository _tagAssignmentRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IRealtimeNotifier _realtimeNotifier;
+    private readonly INotificationService _notificationService;
 
     public ProcessEmergencyButtonPressedCommandHandler(
         IRawEventRepository rawEventRepository,
@@ -27,7 +29,8 @@ public sealed class ProcessEmergencyButtonPressedCommandHandler : IRequestHandle
         IAlarmRepository alarmRepository,
         ITagAssignmentRepository tagAssignmentRepository,
         IUnitOfWork unitOfWork,
-        IRealtimeNotifier realtimeNotifier)
+        IRealtimeNotifier realtimeNotifier,
+        INotificationService notificationService)
     {
         _rawEventRepository = rawEventRepository;
         _tagRepository = tagRepository;
@@ -36,6 +39,7 @@ public sealed class ProcessEmergencyButtonPressedCommandHandler : IRequestHandle
         _tagAssignmentRepository = tagAssignmentRepository;
         _unitOfWork = unitOfWork;
         _realtimeNotifier = realtimeNotifier;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<Guid>> Handle(ProcessEmergencyButtonPressedCommand request, CancellationToken ct)
@@ -114,6 +118,24 @@ public sealed class ProcessEmergencyButtonPressedCommandHandler : IRequestHandle
                         tag.Status.ToString(),
                         eventAt),
                     ct);
+
+        await _notificationService.SendToPermissionAsync(
+                "view_alarms",
+                "Acil Durum",
+                $"{tag.Code} taginden acil durum butonu tetiklendi.",
+                NotificationType.Emergency,
+                NotificationSeverity.Critical,
+                "Alarm",
+                alarm.Id,
+                $"/alarms/{alarm.Id}",
+                EventProcessingHelper.Serialize(new
+                {
+                    AlarmId = alarm.Id,
+                    TagId = tag.Id,
+                    TagCode = tag.Code,
+                    UserId = activeAssignment?.UserId
+                }),
+                ct);
 
         return Result<Guid>.Success(emergencyEvent.Id);
     }

@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -8,10 +8,19 @@ namespace Infrastructure.Repositories;
 public class UserCompanyRepository : IUserCompanyRepository
 {
     private readonly AppDbContext _db;
-    public UserCompanyRepository(AppDbContext db) => _db = db;
+    private readonly ICurrentUserService _currentUser;
+
+    public UserCompanyRepository(AppDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task AddOrReactivateAsync(Guid userId, Guid companyId, CancellationToken ct = default)
     {
+        if (!CanAccessCompany(companyId))
+            return;
+
         // Soft-delete veya mevcut kayıt var mı kontrol et
         var existing = await _db.UserCompanies
             .IgnoreQueryFilters()
@@ -53,6 +62,9 @@ public class UserCompanyRepository : IUserCompanyRepository
 
     public async Task RemoveAsync(Guid userId, Guid companyId, Guid performedBy, CancellationToken ct = default)
     {
+        if (!CanAccessCompany(companyId))
+            return;
+
         // 1) UserCompany kaydını bul
         var link = await _db.UserCompanies
             .FirstOrDefaultAsync(x => x.UserId == userId && x.CompanyId == companyId, ct);
@@ -92,15 +104,21 @@ public class UserCompanyRepository : IUserCompanyRepository
 
     public async Task<IEnumerable<Company>> GetCompaniesByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
+        var companyIds = _currentUser.GetCurrentUserCompanyIds();
+        var unrestricted = HasUnrestrictedScope();
         return await _db.UserCompanies
             .Where(x => x.UserId == userId)
             .Include(x => x.Company)
+            .Where(x => unrestricted || companyIds.Contains(x.CompanyId))
             .Select(x => x.Company)
             .ToListAsync(ct);
     }
 
     public async Task<IEnumerable<User>> GetUsersByCompanyIdAsync(Guid companyId, CancellationToken ct = default)
     {
+        if (!CanAccessCompany(companyId))
+            return Enumerable.Empty<User>();
+
         return await _db.UserCompanies
             .Where(x => x.CompanyId == companyId)
             .Include(x => x.User)
@@ -110,7 +128,17 @@ public class UserCompanyRepository : IUserCompanyRepository
 
     public async Task<bool> IsUserInCompanyAsync(Guid userId, Guid companyId, CancellationToken ct = default)
     {
+        if (!CanAccessCompany(companyId))
+            return false;
+
         return await _db.UserCompanies
             .AnyAsync(x => x.UserId == userId && x.CompanyId == companyId, ct);
     }
+
+    private bool CanAccessCompany(Guid companyId)
+        => HasUnrestrictedScope() || _currentUser.GetCurrentUserCompanyIds().Contains(companyId);
+
+    private bool HasUnrestrictedScope()
+        => _currentUser.IsSystemUser() ||
+           _currentUser.GetRoles().Any(x => x.Equals("super_admin", StringComparison.OrdinalIgnoreCase));
 }

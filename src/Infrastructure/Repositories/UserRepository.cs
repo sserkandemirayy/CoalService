@@ -8,13 +8,19 @@ namespace Infrastructure.Repositories;
 public class UserRepository : IUserRepository
 {
     private readonly AppDbContext _db;
-    public UserRepository(AppDbContext db) => _db = db;
+    private readonly ICurrentUserService _currentUser;
+
+    public UserRepository(AppDbContext db, ICurrentUserService currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task<User?> FindByEmailAsync(string email, CancellationToken ct = default)
         => await _db.Users.FirstOrDefaultAsync(x => x.Email == email, ct);
 
     public async Task<User?> GetByIdAsync(Guid id, CancellationToken ct = default)
-    => await _db.Users
+    => await ApplyUserScope(_db.Users)
         .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
         .Include(u => u.UserType)
@@ -28,13 +34,13 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByIdSingleAsync(Guid id, CancellationToken ct = default)
     {
-        return await _db.Users
+        return await ApplyUserScope(_db.Users)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
     }
 
     public async Task<User?> GetByIdWithRolesForUpdateAsync(Guid id, CancellationToken ct = default)
     {
-        return await _db.Users
+        return await ApplyUserScope(_db.Users)
             .Include(u => u.UserRoles)
             .FirstOrDefaultAsync(u => u.Id == id, ct);
     }
@@ -136,7 +142,7 @@ public class UserRepository : IUserRepository
     }
 
     public async Task<IEnumerable<User>> GetAllAsync(CancellationToken ct = default)
-        => await _db.Users
+        => await ApplyUserScope(_db.Users)
             .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
             .Include(u => u.UserType)
             .Include(u => u.Specialization)
@@ -179,7 +185,7 @@ public class UserRepository : IUserRepository
     string? sort,
     CancellationToken ct)
     {
-        var query = _db.Users
+        var query = ApplyUserScope(_db.Users)
             .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
             .Include(u => u.UserType)
             .Include(u => u.Specialization)
@@ -257,7 +263,7 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default)
     {
-        return await _db.Users
+        return await ApplyUserScope(_db.Users)
             .Include(u => u.Specialization)
             .Include(u => u.UserType)
             .Include(u => u.UserCompanies)
@@ -265,37 +271,31 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Id == id, ct); 
     }
 
-    public async Task<IEnumerable<User>> GetPatientsAsync(CancellationToken ct = default)
-        => await _db.Users
-            .Include(u => u.UserType)
-            .Include(u => u.Specialization) 
-            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-            .Where(u =>
-                u.DeletedAt == null &&
-                u.UserType != null &&
-                u.UserType.Code != null &&
-                u.UserType.Code.ToLower() == "patient")
-            .OrderByDescending(u => u.CreatedAt)
-            .AsNoTracking()
-            .ToListAsync(ct);
-
-    public async Task<User?> GetPatientByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.Users
-            .Include(u => u.UserType)
-            .Include(u => u.Specialization) 
-            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u =>
-                u.Id == id &&
-                u.DeletedAt == null &&
-                u.UserType != null &&
-                u.UserType.Code != null &&
-                u.UserType.Code.ToLower() == "patient", ct);
 
     public async Task<User?> GetByIdSlim(Guid id, CancellationToken ct = default)
     {
-        return await _db.Users
+        return await ApplyUserScope(_db.Users)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
     }
+
+    private IQueryable<User> ApplyUserScope(IQueryable<User> query)
+    {
+        if (HasUnrestrictedScope())
+            return query;
+
+        var currentUserId = _currentUser.GetCurrentUserId();
+        var companyIds = _currentUser.GetCurrentUserCompanyIds();
+        var branchIds = _currentUser.GetCurrentUserBranchIds();
+
+        return query.Where(u =>
+            u.Id == currentUserId ||
+            u.UserCompanies.Any(uc => companyIds.Contains(uc.CompanyId)) ||
+            u.UserBranches.Any(ub => branchIds.Contains(ub.BranchId)));
+    }
+
+    private bool HasUnrestrictedScope()
+        => _currentUser.IsSystemUser() ||
+           _currentUser.GetRoles().Any(x => x.Equals("super_admin", StringComparison.OrdinalIgnoreCase));
 
 
 }

@@ -96,6 +96,10 @@ public class AppDbContext : DbContext
     public DbSet<AnchorMapPosition> AnchorMapPositions => Set<AnchorMapPosition>();
     public DbSet<FloorMapZone> FloorMapZones => Set<FloorMapZone>();
 
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<NotificationRecipient> NotificationRecipients => Set<NotificationRecipient>();
+    public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
 
@@ -1294,6 +1298,77 @@ public class AppDbContext : DbContext
                   .WithMany(x => x.Zones)
                   .HasForeignKey(x => x.FloorMapId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ==== Notification ====
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Title).IsRequired().HasMaxLength(300);
+            entity.Property(x => x.Message).IsRequired().HasMaxLength(2000);
+            entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(100);
+            entity.Property(x => x.Severity).HasConversion<string>().HasMaxLength(50);
+            entity.Property(x => x.SourceType).HasMaxLength(150);
+            entity.Property(x => x.ActionUrl).HasMaxLength(1000);
+            entity.Property(x => x.DataJson).HasColumnType("jsonb");
+            entity.Property(x => x.IsBroadcast).HasDefaultValue(false);
+
+            entity.HasIndex(x => x.Type);
+            entity.HasIndex(x => x.Severity);
+            entity.HasIndex(x => x.SourceType);
+            entity.HasIndex(x => x.SourceId);
+            entity.HasIndex(x => x.CreatedAt);
+            entity.HasIndex(x => x.ExpiresAt);
+        });
+
+        // ==== NotificationRecipient ====
+        modelBuilder.Entity<NotificationRecipient>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.IsRead).HasDefaultValue(false);
+            entity.Property(x => x.IsDelivered).HasDefaultValue(false);
+
+            entity.HasIndex(x => new { x.NotificationId, x.UserId })
+                  .IsUnique()
+                  .HasFilter("\"DeletedAt\" IS NULL");
+
+            entity.HasIndex(x => x.UserId);
+            entity.HasIndex(x => new { x.UserId, x.IsRead });
+            entity.HasIndex(x => x.ReadAt);
+            entity.HasIndex(x => x.DeliveredAt);
+
+            entity.HasOne(x => x.Notification)
+                  .WithMany(x => x.Recipients)
+                  .HasForeignKey(x => x.NotificationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.User)
+                  .WithMany()
+                  .HasForeignKey(x => x.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ==== NotificationTemplate ====
+        modelBuilder.Entity<NotificationTemplate>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Code).IsRequired().HasMaxLength(100);
+            entity.Property(x => x.Name).IsRequired().HasMaxLength(200);
+            entity.Property(x => x.TitleTemplate).IsRequired().HasMaxLength(500);
+            entity.Property(x => x.MessageTemplate).IsRequired().HasMaxLength(2000);
+            entity.Property(x => x.ActionUrlTemplate).HasMaxLength(1000);
+            entity.Property(x => x.Type).HasConversion<string>().HasMaxLength(100);
+            entity.Property(x => x.Severity).HasConversion<string>().HasMaxLength(50);
+            entity.Property(x => x.IsActive).HasDefaultValue(true);
+
+            entity.HasIndex(x => x.Code)
+                  .IsUnique()
+                  .HasFilter("\"DeletedAt\" IS NULL");
+
+            entity.HasIndex(x => x.IsActive);
         });
 
         // ==== Global Soft-Delete Filter ====

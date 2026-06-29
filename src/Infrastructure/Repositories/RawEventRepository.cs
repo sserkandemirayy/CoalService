@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Persistence;
@@ -9,14 +9,16 @@ namespace Infrastructure.Repositories;
 public class RawEventRepository : IRawEventRepository
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public RawEventRepository(AppDbContext db)
+    public RawEventRepository(AppDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<RawEvent?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.RawEvents.FirstOrDefaultAsync(x => x.Id == id, ct);
+        => await ScopedRawEvents().FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task<RawEvent?> GetByExternalEventIdAsync(Guid externalEventId, CancellationToken ct = default)
         => await _db.RawEvents.FirstOrDefaultAsync(x => x.ExternalEventId == externalEventId, ct);
@@ -42,7 +44,7 @@ public class RawEventRepository : IRawEventRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.RawEvents.AsQueryable();
+        var query = ScopedRawEvents();
 
         if (!string.IsNullOrWhiteSpace(eventType))
             query = query.Where(x => x.EventType == eventType);
@@ -70,11 +72,14 @@ public class RawEventRepository : IRawEventRepository
     public async Task<RawEvent?> GetLatestByTagIdAsync(Guid tagId, CancellationToken ct = default)
     {
         var tagIdText = tagId.ToString();
-        return await _db.RawEvents
+        return await ScopedRawEvents()
             .Where(x => x.TagExternalId == tagIdText)
             .OrderByDescending(x => x.EventTimestamp)
             .FirstOrDefaultAsync(ct);
     }
 
     public IQueryable<RawEvent> Query() => _db.RawEvents.AsQueryable();
+
+    private IQueryable<RawEvent> ScopedRawEvents()
+        => RepositoryScope.RawEvents(_db, _currentUser);
 }

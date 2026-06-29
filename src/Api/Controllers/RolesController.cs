@@ -1,8 +1,9 @@
-ï»¿using Application.Companies.Queries;
+using Application.Companies.Queries;
 using Application.DTOs.Companies;
 using Application.DTOs.Permissions;
 using Application.DTOs.Roles;
 using Domain.Abstractions;
+using Domain.Constants;
 using Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -70,8 +71,8 @@ public class RolesController : BaseController
         var role = await _roleRepository.GetByIdAsync(id);
         if (role == null) return NotFound();
 
-        // built-in korumasÄ± (Ã¶rnek)
-        if (role.Name is "admin" or "user" or "patient" or "doctor" or "staff")
+        // built-in korumasý (örnek)
+        if (RtlsRoleNames.BuiltIn.Contains(role.Name))
             return Conflict(new { error = "Built-in role cannot be deleted" });
 
         role.SoftDelete(CurrentUserId);
@@ -118,7 +119,7 @@ public class RolesController : BaseController
 
         if (user == null || role == null) return NotFound();
 
-        // Reactivate mantÄ±ÄŸÄ± User.AssignRole iÃ§inde olmalÄ±
+        // Reactivate mantýðý User.AssignRole içinde olmalý
         //user.AssignRole(role);
         await _userRepository.AssignRoleAsync(dto.UserId, dto.RoleId);
         await _unitOfWork.SaveChangesAsync();
@@ -138,7 +139,7 @@ public class RolesController : BaseController
             foreach (var roleId in dto.Roles)
             {
                 var role = await _roleRepository.GetByIdAsync(roleId);
-                if (role != null) await _userRepository.AssignRoleAsync(userId, roleId); //user.AssignRole(role); // iÃ§inde reactivation kontrolÃ¼ var
+                if (role != null) await _userRepository.AssignRoleAsync(userId, roleId); //user.AssignRole(role); // içinde reactivation kontrolü var
             }
         }
 
@@ -166,7 +167,7 @@ public class RolesController : BaseController
         return Ok(new { Message = "Roles unassigned successfully" });
     }
 
-    // === Sync Roles (add/remove aynÄ± anda) ===
+    // === Sync Roles (add/remove ayný anda) ===
     //[HttpPost("sync")]
     //public async Task<IActionResult> SyncRoles([FromBody] SyncRolesDto dto)
     //{

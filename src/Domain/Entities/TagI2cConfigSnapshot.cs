@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 
 namespace Domain.Entities;
 
@@ -47,6 +47,9 @@ public class TagI2cConfigSnapshot : BaseEntity
         int clockSpeed,
         string devicesJson)
     {
+        if (lastReportedAt < LastReportedAt)
+            return;
+
         LastRawEventId = lastRawEventId;
         LastReportedAt = lastReportedAt;
         Enabled = enabled;

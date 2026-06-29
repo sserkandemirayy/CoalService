@@ -1,4 +1,4 @@
-﻿using Application.Common.Maps;
+using Application.Common.Maps;
 using Application.Common.Models;
 using Application.Common.Realtime;
 using Application.DTOs.EventProcessing;
@@ -127,6 +127,7 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
 
         var activeAssignment = await _tagAssignmentRepository.GetActiveByTagIdAsync(tag.Id, ct);
         var currentLocation = await _currentLocationRepository.GetByTagIdAsync(tag.Id, ct);
+        var isCurrentProjectionUpdated = false;
 
         if (currentLocation is null)
         {
@@ -145,8 +146,9 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
                 floorMapZoneId);
 
             await _currentLocationRepository.AddAsync(currentLocation, ct);
+            isCurrentProjectionUpdated = true;
         }
-        else
+        else if (eventAt >= currentLocation.LastEventAt)
         {
             currentLocation.UpdateFromLocation(
                 activeAssignment?.UserId,
@@ -162,36 +164,40 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
                 floorMapZoneId);
 
             await _currentLocationRepository.UpdateAsync(currentLocation, ct);
+            isCurrentProjectionUpdated = true;
         }
 
         rawEvent.MarkProcessed();
         await _unitOfWork.SaveChangesAsync(ct);
 
-        await _realtimeNotifier.LocationUpdatedAsync(
-            new LocationUpdatedRealtimeDto(
-                tag.Id,
-                tag.ExternalId,
-                tag.Code,
-                activeAssignment?.UserId,
-                floorMapId,
-                floorMapZoneId,
-                mapX,
-                mapY,
-                mapZ,
-                request.Payload.Accuracy,
-                request.Payload.Confidence,
-                eventAt,
-                anchorCount),
-            ct);
+        if (isCurrentProjectionUpdated)
+        {
+            await _realtimeNotifier.LocationUpdatedAsync(
+                new LocationUpdatedRealtimeDto(
+                    tag.Id,
+                    tag.ExternalId,
+                    tag.Code,
+                    activeAssignment?.UserId,
+                    floorMapId,
+                    floorMapZoneId,
+                    mapX,
+                    mapY,
+                    mapZ,
+                    request.Payload.Accuracy,
+                    request.Payload.Confidence,
+                    eventAt,
+                    anchorCount),
+                ct);
 
-        await _realtimeNotifier.TagStatusChangedAsync(
-            new TagStatusChangedRealtimeDto(
-                tag.Id,
-                tag.ExternalId,
-                tag.Code,
-                tag.Status.ToString(),
-                eventAt),
-            ct);
+            await _realtimeNotifier.TagStatusChangedAsync(
+                new TagStatusChangedRealtimeDto(
+                    tag.Id,
+                    tag.ExternalId,
+                    tag.Code,
+                    tag.Status.ToString(),
+                    eventAt),
+                ct);
+        }
 
         return Result<Guid>.Success(locationEvent.Id);
     }

@@ -483,11 +483,88 @@ public static class SeedData
                 Setting.Create("TrackingRefreshSeconds", "5", SettingScope.System),
                 Setting.Create("AlarmAutoRefreshSeconds", "5", SettingScope.System),
                 Setting.Create("CommandDefaultQueueMode", "manual", SettingScope.System),
-                Setting.Create("DefaultMapLayer", "mine", SettingScope.System)
+                Setting.Create("DefaultMapLayer", "mine", SettingScope.System),
+                Setting.Create("NotificationUnreadRefreshSeconds", "5", SettingScope.System),
+                Setting.Create("NotificationRetentionDays", "90", SettingScope.System)
             );
 
             db.SaveChanges();
             Console.WriteLine("✓ Settings oluşturuldu.");
+        }
+
+        // =========================================================
+        // NOTIFICATION TEMPLATES
+        // =========================================================
+        if (!db.NotificationTemplates.Any())
+        {
+            db.NotificationTemplates.AddRange(
+                NotificationTemplate.Create(
+                    "EMERGENCY_BUTTON",
+                    "Acil Durum Butonu",
+                    "Acil Durum",
+                    "{TagCode} taginden acil durum butonu tetiklendi.",
+                    NotificationType.Emergency,
+                    NotificationSeverity.Critical,
+                    "/alarms/{AlarmId}"
+                ),
+                NotificationTemplate.Create(
+                    "LOW_BATTERY",
+                    "Düşük Batarya",
+                    "Düşük Batarya",
+                    "{TagCode} batarya seviyesi %{BatteryLevel}.",
+                    NotificationType.Battery,
+                    NotificationSeverity.Warning,
+                    "/tags/{TagId}"
+                ),
+                NotificationTemplate.Create(
+                    "ANCHOR_OFFLINE",
+                    "Anchor Offline",
+                    "Anchor Offline",
+                    "{AnchorCode} anchor bağlantısı kesildi.",
+                    NotificationType.Anchor,
+                    NotificationSeverity.Warning,
+                    "/anchors/{AnchorId}"
+                ),
+                NotificationTemplate.Create(
+                    "ANCHOR_ERROR",
+                    "Anchor Hatası",
+                    "Anchor Hatası",
+                    "{AnchorCode} anchor hata durumuna geçti. Sebep: {Reason}",
+                    NotificationType.Anchor,
+                    NotificationSeverity.Critical,
+                    "/anchors/{AnchorId}"
+                ),
+                NotificationTemplate.Create(
+                    "PROXIMITY_ALERT",
+                    "Yakınlık İhlali",
+                    "Yakınlık İhlali",
+                    "{TagCode} ve {PeerTagCode} kritik mesafede. Mesafe: {Distance} m.",
+                    NotificationType.Alarm,
+                    NotificationSeverity.Critical,
+                    "/alarms/{AlarmId}"
+                ),
+                NotificationTemplate.Create(
+                    "SYSTEM_ANNOUNCEMENT",
+                    "Sistem Duyurusu",
+                    "Duyuru",
+                    "{Message}",
+                    NotificationType.Announcement,
+                    NotificationSeverity.Info,
+                    "/dashboard"
+                ),
+                NotificationTemplate.Create(
+                    "MAINTENANCE_NOTICE",
+                    "Bakım Duyurusu",
+                    "Bakım Duyurusu",
+                    "{Message}",
+                    NotificationType.Maintenance,
+                    NotificationSeverity.Warning,
+                    "/dashboard"
+                )
+            );
+
+            db.SaveChanges();
+            Console.WriteLine("✓ Notification template kayıtları oluşturuldu.");
         }
 
         // =========================================================

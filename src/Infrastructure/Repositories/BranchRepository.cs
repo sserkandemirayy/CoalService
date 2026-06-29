@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -18,20 +18,14 @@ public class BranchRepository : IBranchRepository
 
     public async Task<Branch?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        var companyIds = _currentUser.GetCurrentUserCompanyIds();
-        return await _db.Branches
+        return await ApplyScope(_db.Branches)
             .Include(b => b.Company)
-            .Where(b => companyIds.Contains(b.CompanyId))
             .FirstOrDefaultAsync(b => b.Id == id && b.DeletedAt == null, ct);
     }
 
     public async Task<IEnumerable<Branch>> GetByCompanyIdAsync(Guid companyId, CancellationToken ct = default)
     {
-        var companyIds = _currentUser.GetCurrentUserCompanyIds();
-        if (!companyIds.Contains(companyId))
-            return Enumerable.Empty<Branch>();
-
-        return await _db.Branches
+        return await ApplyScope(_db.Branches)
             .Where(b => b.CompanyId == companyId && b.DeletedAt == null)
             .ToListAsync(ct);
     }
@@ -44,4 +38,17 @@ public class BranchRepository : IBranchRepository
         _db.Branches.Update(branch);
         return Task.CompletedTask;
     }
+
+    private IQueryable<Branch> ApplyScope(IQueryable<Branch> query)
+    {
+        if (HasUnrestrictedScope())
+            return query;
+
+        var companyIds = _currentUser.GetCurrentUserCompanyIds();
+        return query.Where(x => companyIds.Contains(x.CompanyId));
+    }
+
+    private bool HasUnrestrictedScope()
+        => _currentUser.IsSystemUser() ||
+           _currentUser.GetRoles().Any(x => x.Equals("super_admin", StringComparison.OrdinalIgnoreCase));
 }

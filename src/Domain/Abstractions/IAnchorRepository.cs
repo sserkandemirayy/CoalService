@@ -7,6 +7,7 @@ public interface IAnchorRepository
 {
     Task<Anchor?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<Anchor?> GetByExternalIdAsync(string externalId, CancellationToken ct = default);
+    Task<Anchor?> GetScopedByExternalIdAsync(string externalId, CancellationToken ct = default);
     Task<Anchor?> GetByCodeAsync(string code, CancellationToken ct = default);
     Task AddAsync(Anchor anchor, CancellationToken ct = default);
     Task UpdateAsync(Anchor anchor, CancellationToken ct = default);

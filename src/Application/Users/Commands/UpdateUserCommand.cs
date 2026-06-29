@@ -1,4 +1,4 @@
-ï»¿using Application.Common.Models;
+using Application.Common.Models;
 using Domain.Abstractions;
 using Domain.Entities;
 using FluentValidation;
@@ -67,7 +67,7 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, Result<Unit>
         var currentUserId = _current.GetCurrentUserId();
         var currentPerms = _current.GetPermissions().ToHashSet();
 
-        // Eski deÄŸerleri al (audit iÃ§in)
+        // Eski deðerleri al (audit için)
         var oldData = new
         {
             user.FirstName,
@@ -77,14 +77,16 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, Result<Unit>
             user.UserTypeId,
             user.NationalIdEncrypted,
             user.Gender,
-            user.BirthDate
+            user.BirthDate,
+            user.SpecializationId
         };
 
-        // === GÃ¼ncelleme iÅŸlemi ===
+        // === Güncelleme iþlemi ===
         var phone = user.PhoneEncrypted;
         var address = user.AddressEncrypted;
         var nationalId = user.NationalIdEncrypted;
 
+        var canManageUsers = currentPerms.Contains("manage_users");
         var canEditPII = currentPerms.Contains("edit_pii");
         if (canEditPII)
         {
@@ -100,7 +102,11 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, Result<Unit>
 
         user.UpdateProfile(req.FirstName, req.LastName, phone ?? string.Empty, address ?? string.Empty, nationalId ?? string.Empty, req.Gender ?? string.Empty);
 
-        // === (UserType deÄŸiÅŸikliÄŸi) ===
+        var requestedSpecializationId = req.UserSpecializationId;
+        var classificationChanged = req.UserTypeId != user.UserTypeId || requestedSpecializationId != user.SpecializationId;
+        if (classificationChanged && !canManageUsers)
+            return Result<Unit>.Failure("Only users with manage_users permission can change user type or specialization.");
+        // === (UserType deðiþikliði) ===
         if (req.UserTypeId != user.UserTypeId)
         {
             var type = await _userTypes.GetByIdAsync(req.UserTypeId, ct);
@@ -126,7 +132,7 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, Result<Unit>
             if (spec == null)
                 return Result<Unit>.Failure("Specialization not found");
 
-            // Specialization, kullanÄ±cÄ± tipine ait olmalÄ±
+            // Specialization, kullanýcý tipine ait olmalý
             if (spec.UserTypeId != user.UserTypeId)
                 return Result<Unit>.Failure("Specialization does not belong to the selected UserType");
 
@@ -134,7 +140,7 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, Result<Unit>
         }
         else
         {
-            // frontend boÅŸ gÃ¶nderirse uzmanlÄ±ÄŸÄ± temizle
+            // frontend boþ gönderirse uzmanlýðý temizle
             user.SetSpecialization(null);
         }
 
@@ -157,6 +163,7 @@ public class UpdateUserHandler : IRequestHandler<UpdateUserCommand, Result<Unit>
                     PiiChanged = canEditPII &&
                                  (oldData.PhoneEncrypted != phone || oldData.AddressEncrypted != address || oldData.NationalIdEncrypted != nationalId),
                     UserTypeChanged = oldData.UserTypeId != req.UserTypeId,
+                    SpecializationChanged = oldData.SpecializationId != req.UserSpecializationId,
                     GenderChanged = oldData.Gender != req.Gender,
                     BirthDateChanged = oldData.BirthDate != req.BirthDate
                 }

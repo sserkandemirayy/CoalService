@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Enums;
 
 namespace Domain.Entities;
@@ -62,6 +62,9 @@ public class TagDioConfigSnapshot : BaseEntity
         bool reportOnChange,
         string lowPassFilterJson)
     {
+        if (lastReportedAt < LastReportedAt)
+            return;
+
         LastRawEventId = lastRawEventId;
         LastReportedAt = lastReportedAt;
         Direction = direction;

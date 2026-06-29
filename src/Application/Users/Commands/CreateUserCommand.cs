@@ -1,5 +1,6 @@
-ï»¿using Application.Common.Models;
+using Application.Common.Models;
 using Domain.Abstractions;
+using Domain.Constants;
 using Domain.Entities;
 using FluentValidation;
 using MediatR;
@@ -61,7 +62,7 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Result<Guid>
 
     public async Task<Result<Guid>> Handle(CreateUserCommand req, CancellationToken ct)
     {
-        // Email kontrolÃ¼
+        // Email kontrolü
         var existing = await _users.FindByEmailAsync(req.Email, ct);
         if (existing is not null)
             return Result<Guid>.Failure("Email already exists");
@@ -70,7 +71,7 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Result<Guid>
         if (type == null)
             return Result<Guid>.Failure("Invalid UserTypeId");
 
-        // === Specialization kontrolÃ¼ ===
+        // === Specialization kontrolü ===
         if (req.UserSpecializationId.HasValue)
         {
             var spec = await _specializations.GetByIdAsync(req.UserSpecializationId.Value, ct);
@@ -81,10 +82,10 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Result<Guid>
                 return Result<Guid>.Failure("Specialization does not belong to selected UserType");
         }
 
-        // === Åžifre atama (ÅŸimdilik sabit 123456) ===
+        // === Þifre atama (þimdilik sabit 123456) ===
         var password = "123456";
 
-        // === Strong password generator (ileride aÃ§acaksÄ±n) ===
+        // === Strong password generator (ileride açacaksýn) ===
         /*
         var password = PasswordGenerator.Generate(
             length: 12,
@@ -126,21 +127,14 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Result<Guid>
         if (req.UserSpecializationId.HasValue)
             user.SetSpecialization(req.UserSpecializationId.Value);
 
-        // === Rol atama ===
-        var roleCode = type.Code.ToLowerInvariant() switch
-        {
-            "staff" => "staff",
-            "doctor" => "doctor",
-            "user" => "user",
-            "patient" => "patient",
-            _ => "user"
-        };
-
-        var role = await _roles.FindByNameAsync(roleCode, ct);
-        if (role != null)
-            user.AssignRole(role);
-
         await _users.AddAsync(user, ct);
+
+        // All new RTLS users start as viewer. Elevated operational roles are assigned explicitly.
+        var role = await _roles.FindByNameAsync(RtlsRoleNames.Viewer, ct);
+        if (role is null)
+            return Result<Guid>.Failure($"Default role '{RtlsRoleNames.Viewer}' is not configured");
+
+        await _users.AssignRoleAsync(user, role, ct);
         await _uow.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(user.Id);

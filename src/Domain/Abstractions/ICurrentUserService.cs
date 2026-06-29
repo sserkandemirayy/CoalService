@@ -9,4 +9,5 @@ public interface ICurrentUserService
     IEnumerable<string> GetPermissions();
     bool IsSystemUser();
     List<Guid> GetCurrentUserCompanyIds();
+    List<Guid> GetCurrentUserBranchIds();
 }

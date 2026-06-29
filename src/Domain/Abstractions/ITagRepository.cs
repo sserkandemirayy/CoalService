@@ -7,6 +7,7 @@ public interface ITagRepository
 {
     Task<Tag?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<Tag?> GetByExternalIdAsync(string externalId, CancellationToken ct = default);
+    Task<Tag?> GetScopedByExternalIdAsync(string externalId, CancellationToken ct = default);
     Task<Tag?> GetByCodeAsync(string code, CancellationToken ct = default);
     Task AddAsync(Tag tag, CancellationToken ct = default);
     Task UpdateAsync(Tag tag, CancellationToken ct = default);

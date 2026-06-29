@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -8,14 +8,16 @@ namespace Infrastructure.Repositories;
 public class UwbRangingEventRepository : IUwbRangingEventRepository
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public UwbRangingEventRepository(AppDbContext db)
+    public UwbRangingEventRepository(AppDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<UwbRangingEvent?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.UwbRangingEvents.FirstOrDefaultAsync(x => x.Id == id, ct);
+        => await Scoped().FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task AddAsync(UwbRangingEvent uwbRangingEvent, CancellationToken ct = default)
         => await _db.UwbRangingEvents.AddAsync(uwbRangingEvent, ct);
@@ -26,7 +28,7 @@ public class UwbRangingEventRepository : IUwbRangingEventRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.UwbRangingEvents.Where(x => x.TagId == tagId);
+        var query = Scoped().Where(x => x.TagId == tagId);
 
         var total = await query.CountAsync(ct);
 
@@ -45,7 +47,7 @@ public class UwbRangingEventRepository : IUwbRangingEventRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.UwbRangingEvents.Where(x => x.AnchorId == anchorId);
+        var query = Scoped().Where(x => x.AnchorId == anchorId);
 
         var total = await query.CountAsync(ct);
 
@@ -56,6 +58,13 @@ public class UwbRangingEventRepository : IUwbRangingEventRepository
             .ToListAsync(ct);
 
         return (items, total);
+    }
+
+    private IQueryable<UwbRangingEvent> Scoped()
+    {
+        var tags = RepositoryScope.Tags(_db, _currentUser);
+        var anchors = RepositoryScope.Anchors(_db, _currentUser);
+        return _db.UwbRangingEvents.Where(x => tags.Any(t => t.Id == x.TagId) || anchors.Any(a => a.Id == x.AnchorId));
     }
 
     public IQueryable<UwbRangingEvent> Query() => _db.UwbRangingEvents.AsQueryable();

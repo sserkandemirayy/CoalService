@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -8,14 +8,16 @@ namespace Infrastructure.Repositories;
 public class I2cDataEventRepository : II2cDataEventRepository
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public I2cDataEventRepository(AppDbContext db)
+    public I2cDataEventRepository(AppDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<I2cDataEvent?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.I2cDataEvents.FirstOrDefaultAsync(x => x.Id == id, ct);
+        => await Scoped().FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task AddAsync(I2cDataEvent entity, CancellationToken ct = default)
         => await _db.I2cDataEvents.AddAsync(entity, ct);
@@ -26,7 +28,7 @@ public class I2cDataEventRepository : II2cDataEventRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.I2cDataEvents.Where(x => x.TagId == tagId);
+        var query = Scoped().Where(x => x.TagId == tagId);
 
         var total = await query.CountAsync(ct);
 
@@ -37,6 +39,12 @@ public class I2cDataEventRepository : II2cDataEventRepository
             .ToListAsync(ct);
 
         return (items, total);
+    }
+
+    private IQueryable<I2cDataEvent> Scoped()
+    {
+        var tags = RepositoryScope.Tags(_db, _currentUser);
+        return _db.I2cDataEvents.Where(x => tags.Any(t => t.Id == x.TagId));
     }
 
     public IQueryable<I2cDataEvent> Query() => _db.I2cDataEvents.AsQueryable();

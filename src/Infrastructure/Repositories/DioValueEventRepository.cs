@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -8,14 +8,16 @@ namespace Infrastructure.Repositories;
 public class DioValueEventRepository : IDioValueEventRepository
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public DioValueEventRepository(AppDbContext db)
+    public DioValueEventRepository(AppDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<DioValueEvent?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.DioValueEvents.FirstOrDefaultAsync(x => x.Id == id, ct);
+        => await Scoped().FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task AddAsync(DioValueEvent entity, CancellationToken ct = default)
         => await _db.DioValueEvents.AddAsync(entity, ct);
@@ -26,7 +28,7 @@ public class DioValueEventRepository : IDioValueEventRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.DioValueEvents.Where(x => x.TagId == tagId);
+        var query = Scoped().Where(x => x.TagId == tagId);
 
         var total = await query.CountAsync(ct);
 
@@ -37,6 +39,12 @@ public class DioValueEventRepository : IDioValueEventRepository
             .ToListAsync(ct);
 
         return (items, total);
+    }
+
+    private IQueryable<DioValueEvent> Scoped()
+    {
+        var tags = RepositoryScope.Tags(_db, _currentUser);
+        return _db.DioValueEvents.Where(x => tags.Any(t => t.Id == x.TagId));
     }
 
     public IQueryable<DioValueEvent> Query() => _db.DioValueEvents.AsQueryable();

@@ -1,4 +1,4 @@
-ï»¿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Enums;
 
 namespace Domain.Entities;
@@ -26,14 +26,14 @@ public class Tag : BaseEntity
     public ICollection<BatteryEvent> BatteryEvents { get; private set; } = new List<BatteryEvent>();
     public ICollection<ImuEvent> ImuEvents { get; private set; } = new List<ImuEvent>();
 
-    // Proximity iÃ§in ayrÄ± navigation'lar
+    // Proximity için ayrý navigation'lar
     public ICollection<ProximityEvent> PrimaryProximityEvents { get; private set; } = new List<ProximityEvent>();
     public ICollection<ProximityEvent> PeerProximityEvents { get; private set; } = new List<ProximityEvent>();
 
     public ICollection<EmergencyEvent> EmergencyEvents { get; private set; } = new List<EmergencyEvent>();
     public ICollection<CurrentLocation> CurrentLocations { get; private set; } = new List<CurrentLocation>();
 
-    // Alarm iÃ§in ayrÄ± navigation'lar
+    // Alarm için ayrý navigation'lar
     public ICollection<Alarm> PrimaryAlarms { get; private set; } = new List<Alarm>();
     public ICollection<Alarm> PeerAlarms { get; private set; } = new List<Alarm>();
 
@@ -100,6 +100,9 @@ public class Tag : BaseEntity
 
     public void MarkSeen(DateTime eventAt)
     {
+        if (LastEventAt.HasValue && eventAt < LastEventAt.Value)
+            return;
+
         LastSeenAt = eventAt;
         LastEventAt = eventAt;
         if (IsActive)
@@ -111,6 +114,9 @@ public class Tag : BaseEntity
         if (batteryLevel < 0 || batteryLevel > 100)
             throw new ArgumentOutOfRangeException(nameof(batteryLevel));
 
+        if (LastEventAt.HasValue && eventAt < LastEventAt.Value)
+            return;
+
         BatteryLevel = batteryLevel;
         LastEventAt = eventAt;
         if (LastSeenAt == null || eventAt > LastSeenAt)
@@ -119,6 +125,9 @@ public class Tag : BaseEntity
 
     public void SetStatus(TagStatus status, DateTime? eventAt = null)
     {
+        if (eventAt.HasValue && LastEventAt.HasValue && eventAt.Value < LastEventAt.Value)
+            return;
+
         Status = status;
         if (eventAt.HasValue)
             LastEventAt = eventAt.Value;

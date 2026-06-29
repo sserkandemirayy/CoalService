@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -8,14 +8,16 @@ namespace Infrastructure.Repositories;
 public class LocationEventRepository : ILocationEventRepository
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public LocationEventRepository(AppDbContext db)
+    public LocationEventRepository(AppDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<LocationEvent?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.LocationEvents.FirstOrDefaultAsync(x => x.Id == id, ct);
+        => await Scoped().FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task AddAsync(LocationEvent locationEvent, CancellationToken ct = default)
         => await _db.LocationEvents.AddAsync(locationEvent, ct);
@@ -26,7 +28,7 @@ public class LocationEventRepository : ILocationEventRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.LocationEvents.Where(x => x.TagId == tagId);
+        var query = Scoped().Where(x => x.TagId == tagId);
 
         var total = await query.CountAsync(ct);
 
@@ -47,7 +49,7 @@ public class LocationEventRepository : ILocationEventRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.LocationEvents.Where(x => x.TagId == tagId);
+        var query = Scoped().Where(x => x.TagId == tagId);
 
         if (from.HasValue)
             query = query.Where(x => x.EventTimestamp >= from.Value);
@@ -67,10 +69,16 @@ public class LocationEventRepository : ILocationEventRepository
     }
 
     public async Task<LocationEvent?> GetLatestByTagIdAsync(Guid tagId, CancellationToken ct = default)
-        => await _db.LocationEvents
+        => await Scoped()
             .Where(x => x.TagId == tagId)
             .OrderByDescending(x => x.EventTimestamp)
             .FirstOrDefaultAsync(ct);
+
+    private IQueryable<LocationEvent> Scoped()
+    {
+        var tags = RepositoryScope.Tags(_db, _currentUser);
+        return _db.LocationEvents.Where(x => tags.Any(t => t.Id == x.TagId));
+    }
 
     public IQueryable<LocationEvent> Query() => _db.LocationEvents.AsQueryable();
 }

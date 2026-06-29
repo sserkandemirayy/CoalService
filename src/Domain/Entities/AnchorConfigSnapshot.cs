@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 
 namespace Domain.Entities;
 
@@ -63,6 +63,9 @@ public class AnchorConfigSnapshot : BaseEntity
         long heartbeatInterval,
         long reportInterval)
     {
+        if (lastReportedAt < LastReportedAt)
+            return;
+
         LastRawEventId = lastRawEventId;
         LastReportedAt = lastReportedAt;
         FirmwareVersion = firmwareVersion.Trim();

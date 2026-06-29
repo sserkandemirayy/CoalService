@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -8,14 +8,16 @@ namespace Infrastructure.Repositories;
 public class AnchorHeartbeatEventRepository : IAnchorHeartbeatEventRepository
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public AnchorHeartbeatEventRepository(AppDbContext db)
+    public AnchorHeartbeatEventRepository(AppDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<AnchorHeartbeatEvent?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.AnchorHeartbeatEvents.FirstOrDefaultAsync(x => x.Id == id, ct);
+        => await Scoped().FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task AddAsync(AnchorHeartbeatEvent heartbeatEvent, CancellationToken ct = default)
         => await _db.AnchorHeartbeatEvents.AddAsync(heartbeatEvent, ct);
@@ -26,7 +28,7 @@ public class AnchorHeartbeatEventRepository : IAnchorHeartbeatEventRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.AnchorHeartbeatEvents.Where(x => x.AnchorId == anchorId);
+        var query = Scoped().Where(x => x.AnchorId == anchorId);
 
         var total = await query.CountAsync(ct);
 
@@ -37,6 +39,12 @@ public class AnchorHeartbeatEventRepository : IAnchorHeartbeatEventRepository
             .ToListAsync(ct);
 
         return (items, total);
+    }
+
+    private IQueryable<AnchorHeartbeatEvent> Scoped()
+    {
+        var anchors = RepositoryScope.Anchors(_db, _currentUser);
+        return _db.AnchorHeartbeatEvents.Where(x => anchors.Any(a => a.Id == x.AnchorId));
     }
 
     public IQueryable<AnchorHeartbeatEvent> Query() => _db.AnchorHeartbeatEvents.AsQueryable();

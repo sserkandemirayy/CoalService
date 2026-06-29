@@ -1,5 +1,7 @@
-﻿using Application.Dashboard;
+using Application.Dashboard;
 using Application.DTOs.Dashboard;
+using Domain.Abstractions;
+using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -9,10 +11,12 @@ namespace Infrastructure.Repositories;
 public sealed class DashboardReadRepository : IDashboardReadRepository
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public DashboardReadRepository(AppDbContext db)
+    public DashboardReadRepository(AppDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<DashboardSummaryDto> GetSummaryAsync(CancellationToken ct = default)
@@ -24,13 +28,13 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
         var last5Minutes = now.AddMinutes(-5);
         var last15Minutes = now.AddMinutes(-15);
 
-        var totalTags = await _db.Tags.CountAsync(ct);
-        var activeTags = await _db.Tags.CountAsync(x => x.IsActive, ct);
-        var onlineTags = await _db.Tags.CountAsync(x => x.Status == TagStatus.Online, ct);
-        var offlineTags = await _db.Tags.CountAsync(x => x.Status == TagStatus.Offline, ct);
-        var inactiveTags = await _db.Tags.CountAsync(x => x.Status == TagStatus.Inactive, ct);
+        var totalTags = await ScopedTags().CountAsync(ct);
+        var activeTags = await ScopedTags().CountAsync(x => x.IsActive, ct);
+        var onlineTags = await ScopedTags().CountAsync(x => x.Status == TagStatus.Online, ct);
+        var offlineTags = await ScopedTags().CountAsync(x => x.Status == TagStatus.Offline, ct);
+        var inactiveTags = await ScopedTags().CountAsync(x => x.Status == TagStatus.Inactive, ct);
 
-        var assignedTags = await _db.TagAssignments
+        var assignedTags = await ScopedTagAssignments()
             .Where(x => x.UnassignedAt == null)
             .Select(x => x.TagId)
             .Distinct()
@@ -38,110 +42,110 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
 
         var unassignedTags = totalTags - assignedTags;
 
-        var personnelTags = await _db.Tags.CountAsync(x => x.TagType == TagType.Personnel, ct);
-        var vehicleTags = await _db.Tags.CountAsync(x => x.TagType == TagType.Vehicle, ct);
-        var assetTags = await _db.Tags.CountAsync(x => x.TagType == TagType.Asset, ct);
+        var personnelTags = await ScopedTags().CountAsync(x => x.TagType == TagType.Personnel, ct);
+        var vehicleTags = await ScopedTags().CountAsync(x => x.TagType == TagType.Vehicle, ct);
+        var assetTags = await ScopedTags().CountAsync(x => x.TagType == TagType.Asset, ct);
 
-        var activeAlarms = await _db.Alarms.CountAsync(x => x.Status == AlarmStatus.Active, ct);
-        var acknowledgedAlarms = await _db.Alarms.CountAsync(x => x.Status == AlarmStatus.Acknowledged, ct);
-        var criticalAlarms = await _db.Alarms.CountAsync(x =>
+        var activeAlarms = await ScopedAlarms().CountAsync(x => x.Status == AlarmStatus.Active, ct);
+        var acknowledgedAlarms = await ScopedAlarms().CountAsync(x => x.Status == AlarmStatus.Acknowledged, ct);
+        var criticalAlarms = await ScopedAlarms().CountAsync(x =>
             x.Status == AlarmStatus.Active &&
             x.Severity == AlarmSeverity.Critical, ct);
 
-        var warningAlarms = await _db.Alarms.CountAsync(x =>
+        var warningAlarms = await ScopedAlarms().CountAsync(x =>
             x.Status == AlarmStatus.Active &&
             x.Severity == AlarmSeverity.Warning, ct);
 
-        var todayAlarms = await _db.Alarms.CountAsync(x => x.StartedAt >= today, ct);
-        var last24HoursAlarms = await _db.Alarms.CountAsync(x => x.StartedAt >= last24Hours, ct);
+        var todayAlarms = await ScopedAlarms().CountAsync(x => x.StartedAt >= today, ct);
+        var last24HoursAlarms = await ScopedAlarms().CountAsync(x => x.StartedAt >= last24Hours, ct);
 
-        var emergencyButtonAlarms = await _db.Alarms.CountAsync(x =>
+        var emergencyButtonAlarms = await ScopedAlarms().CountAsync(x =>
             x.StartedAt >= last24Hours &&
             x.AlarmType == AlarmType.EmergencyButtonPressed, ct);
 
-        var proximityAlarms = await _db.Alarms.CountAsync(x =>
+        var proximityAlarms = await ScopedAlarms().CountAsync(x =>
             x.StartedAt >= last24Hours &&
             x.AlarmType == AlarmType.ProximityAlert, ct);
 
-        var lowBatteryAlarms = await _db.Alarms.CountAsync(x =>
+        var lowBatteryAlarms = await ScopedAlarms().CountAsync(x =>
             x.StartedAt >= last24Hours &&
             x.AlarmType == AlarmType.LowBattery, ct);
 
-        var anchorOfflineAlarms = await _db.Alarms.CountAsync(x =>
+        var anchorOfflineAlarms = await ScopedAlarms().CountAsync(x =>
             x.StartedAt >= last24Hours &&
             x.AlarmType == AlarmType.AnchorOffline, ct);
 
-        var currentlyLocatedTags = await _db.CurrentLocations
+        var currentlyLocatedTags = await ScopedCurrentLocations()
             .Select(x => x.TagId)
             .Distinct()
             .CountAsync(ct);
 
-        var seenLast5Minutes = await _db.CurrentLocations
+        var seenLast5Minutes = await ScopedCurrentLocations()
             .CountAsync(x => x.LastEventAt >= last5Minutes, ct);
 
-        var seenLast15Minutes = await _db.CurrentLocations
+        var seenLast15Minutes = await ScopedCurrentLocations()
             .CountAsync(x => x.LastEventAt >= last15Minutes, ct);
 
         var lostLocationTags = activeTags - seenLast15Minutes;
         if (lostLocationTags < 0) lostLocationTags = 0;
 
-        var activePersonnel = await _db.CurrentLocations
+        var activePersonnel = await ScopedCurrentLocations()
             .Include(x => x.Tag)
             .CountAsync(x =>
                 x.LastEventAt >= last15Minutes &&
                 x.Tag.TagType == TagType.Personnel, ct);
 
-        var activeVehicles = await _db.CurrentLocations
+        var activeVehicles = await ScopedCurrentLocations()
             .Include(x => x.Tag)
             .CountAsync(x =>
                 x.LastEventAt >= last15Minutes &&
                 x.Tag.TagType == TagType.Vehicle, ct);
 
-        var activeAssets = await _db.CurrentLocations
+        var activeAssets = await ScopedCurrentLocations()
             .Include(x => x.Tag)
             .CountAsync(x =>
                 x.LastEventAt >= last15Minutes &&
                 x.Tag.TagType == TagType.Asset, ct);
 
-        var totalAnchors = await _db.Anchors.CountAsync(ct);
-        var activeAnchors = await _db.Anchors.CountAsync(x => x.IsActive, ct);
-        var onlineAnchors = await _db.Anchors.CountAsync(x => x.Status == AnchorStatus.Online, ct);
-        var offlineAnchors = await _db.Anchors.CountAsync(x => x.Status == AnchorStatus.Offline, ct);
+        var totalAnchors = await ScopedAnchors().CountAsync(ct);
+        var activeAnchors = await ScopedAnchors().CountAsync(x => x.IsActive, ct);
+        var onlineAnchors = await ScopedAnchors().CountAsync(x => x.Status == AnchorStatus.Online, ct);
+        var offlineAnchors = await ScopedAnchors().CountAsync(x => x.Status == AnchorStatus.Offline, ct);
 
-        var heartbeatMissingAnchors = await _db.Anchors.CountAsync(x =>
+        var heartbeatMissingAnchors = await ScopedAnchors().CountAsync(x =>
             x.IsActive &&
             (x.LastHeartbeatAt == null || x.LastHeartbeatAt < last5Minutes), ct);
 
-        var criticalBatteryTags = await _db.Tags.CountAsync(x =>
+        var criticalBatteryTags = await ScopedTags().CountAsync(x =>
             x.BatteryLevel != null &&
             x.BatteryLevel <= 10, ct);
 
-        var lowBatteryTags = await _db.Tags.CountAsync(x =>
+        var lowBatteryTags = await ScopedTags().CountAsync(x =>
             x.BatteryLevel != null &&
             x.BatteryLevel <= 20, ct);
 
-        var averageBatteryLevel = await _db.Tags
+        var averageBatteryLevel = await ScopedTags()
             .Where(x => x.BatteryLevel != null)
             .Select(x => (decimal?)x.BatteryLevel)
             .AverageAsync(ct) ?? 0;
 
-        var batteryWarningsLast24Hours = await _db.BatteryEvents
+        var batteryWarningsLast24Hours = await ScopedBatteryEvents()
             .CountAsync(x =>
                 x.EventTimestamp >= last24Hours &&
                 x.BatteryLevel <= 20, ct);
 
-        var todayRawEvents = await _db.RawEvents.CountAsync(x => x.EventTimestamp >= today, ct);
-        var lastHourRawEvents = await _db.RawEvents.CountAsync(x => x.EventTimestamp >= lastHour, ct);
-        var processedEvents = await _db.RawEvents.CountAsync(x => x.ProcessingStatus == RawEventProcessingStatus.Processed, ct);
-        var failedEvents = await _db.RawEvents.CountAsync(x => x.ProcessingStatus == RawEventProcessingStatus.Failed, ct);
-        var pendingEvents = await _db.RawEvents.CountAsync(x => x.ProcessingStatus == RawEventProcessingStatus.Pending, ct);
+        var todayRawEvents = await ScopedRawEvents().CountAsync(x => x.EventTimestamp >= today, ct);
+        var lastHourRawEvents = await ScopedRawEvents().CountAsync(x => x.EventTimestamp >= lastHour, ct);
+        var processedEvents = await ScopedRawEvents().CountAsync(x => x.ProcessingStatus == RawEventProcessingStatus.Processed, ct);
+        var failedEvents = await ScopedRawEvents().CountAsync(x => x.ProcessingStatus == RawEventProcessingStatus.Failed, ct);
+        var pendingEvents = await ScopedRawEvents().CountAsync(x => x.ProcessingStatus == RawEventProcessingStatus.Pending, ct);
 
         var totalProcessedOrFailed = processedEvents + failedEvents;
         var successRate = totalProcessedOrFailed == 0
             ? 100
             : Math.Round((decimal)processedEvents * 100 / totalProcessedOrFailed, 2);
 
-        var lastEventAt = await _db.RawEvents
+        var lastEventAt = await ScopedRawEvents()
             .OrderByDescending(x => x.EventTimestamp)
             .Select(x => (DateTime?)x.EventTimestamp)
             .FirstOrDefaultAsync(ct);
@@ -226,7 +230,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
         int take,
         CancellationToken ct = default)
     {
-        return await _db.Alarms
+        return await ScopedAlarms()
             .AsNoTracking()
             .Include(x => x.Tag)
             .Include(x => x.Anchor)
@@ -258,7 +262,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
         int take,
         CancellationToken ct = default)
     {
-        return await _db.EmergencyEvents
+        return await ScopedEmergencyEvents()
             .AsNoTracking()
             .Include(x => x.Tag)
             .ThenInclude(x => x.Assignments)
@@ -287,7 +291,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
         int take,
         CancellationToken ct = default)
     {
-        return await _db.CurrentLocations
+        return await ScopedCurrentLocations()
             .AsNoTracking()
             .Include(x => x.Tag)
             .Include(x => x.User)
@@ -324,32 +328,32 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
         var last15 = now.AddMinutes(-15);
         var last30 = now.AddMinutes(-30);
 
-        var activePersonnelNow = await _db.CurrentLocations
+        var activePersonnelNow = await ScopedCurrentLocations()
             .CountAsync(x => x.Tag.TagType == TagType.Personnel, ct);
 
-        var movingLast5 = await _db.CurrentLocations
+        var movingLast5 = await ScopedCurrentLocations()
             .CountAsync(x => x.Tag.TagType == TagType.Personnel && x.LastEventAt >= last5, ct);
 
-        var silentLast15 = await _db.CurrentLocations
+        var silentLast15 = await ScopedCurrentLocations()
             .CountAsync(x => x.Tag.TagType == TagType.Personnel && x.LastEventAt < last15, ct);
 
-        var lostLast30 = await _db.CurrentLocations
+        var lostLast30 = await ScopedCurrentLocations()
             .CountAsync(x => x.Tag.TagType == TagType.Personnel && x.LastEventAt < last30, ct);
 
-        var todayLocationTagIds = await _db.LocationEvents
+        var todayLocationTagIds = await ScopedLocationEvents()
             .Where(x => x.EventTimestamp >= today)
             .Select(x => x.TagId)
             .Distinct()
             .ToListAsync(ct);
 
-        var personnelWithNoMovementToday = await _db.TagAssignments
+        var personnelWithNoMovementToday = await ScopedTagAssignments()
             .Include(x => x.Tag)
             .CountAsync(x =>
                 x.UnassignedAt == null &&
                 x.Tag.TagType == TagType.Personnel &&
                 !todayLocationTagIds.Contains(x.TagId), ct);
 
-        var topTagCounts = await _db.LocationEvents
+        var topTagCounts = await ScopedLocationEvents()
             .Where(x => x.EventTimestamp >= today)
             .GroupBy(x => x.TagId)
             .Select(g => new
@@ -362,7 +366,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
             .Take(take)
             .ToListAsync(ct);
 
-        var leastTagCounts = await _db.LocationEvents
+        var leastTagCounts = await ScopedLocationEvents()
             .Where(x => x.EventTimestamp >= today)
             .GroupBy(x => x.TagId)
             .Select(g => new
@@ -378,7 +382,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
         var mostActive = await BuildPersonnelActivityListAsync(topTagCounts, ct);
         var leastActive = await BuildPersonnelActivityListAsync(leastTagCounts, ct);
 
-        var longestSilent = await _db.CurrentLocations
+        var longestSilent = await ScopedCurrentLocations()
             .AsNoTracking()
             .Include(x => x.Tag)
             .Include(x => x.User)
@@ -396,14 +400,14 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
             ))
             .ToListAsync(ct);
 
-        var assignedButNoLocation = await _db.TagAssignments
+        var assignedButNoLocation = await ScopedTagAssignments()
             .AsNoTracking()
             .Include(x => x.Tag)
             .Include(x => x.User)
             .Where(x =>
                 x.UnassignedAt == null &&
                 x.Tag.TagType == TagType.Personnel &&
-                !_db.CurrentLocations.Any(cl => cl.TagId == x.TagId))
+                !ScopedCurrentLocations().Any(cl => cl.TagId == x.TagId))
             .Take(take)
             .Select(x => new SilentPersonnelDto(
                 x.UserId,
@@ -437,17 +441,17 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
         var last24 = now.AddHours(-24);
         var last30Days = now.AddDays(-30);
 
-        var activeEmergencyAlarms = await _db.Alarms.CountAsync(x =>
+        var activeEmergencyAlarms = await ScopedAlarms().CountAsync(x =>
             x.Status == AlarmStatus.Active &&
             x.AlarmType == AlarmType.EmergencyButtonPressed, ct);
 
-        var unacknowledgedAlarms = await _db.Alarms.CountAsync(x =>
+        var unacknowledgedAlarms = await ScopedAlarms().CountAsync(x =>
             x.Status == AlarmStatus.Active, ct);
 
-        var proximityViolationsLast24Hours = await _db.ProximityEvents.CountAsync(x =>
+        var proximityViolationsLast24Hours = await ScopedProximityEvents().CountAsync(x =>
             x.EventTimestamp >= last24, ct);
 
-        var personnelInDangerZones = await _db.CurrentLocations
+        var personnelInDangerZones = await ScopedCurrentLocations()
             .CountAsync(x =>
                 x.Tag.TagType == TagType.Personnel &&
                 x.FloorMapZone != null &&
@@ -456,7 +460,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
                     x.FloorMapZone.ZoneType == FloorMapZoneType.Restricted
                 ), ct);
 
-        var riskyPersonnelGrouped = await _db.Alarms
+        var riskyPersonnelGrouped = await ScopedAlarms()
             .AsNoTracking()
             .Where(x => x.StartedAt >= last30Days && x.UserId != null)
             .GroupBy(x => new { x.UserId, x.TagId })
@@ -494,7 +498,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
             })
             .ToListAsync(ct);
 
-        var tags = await _db.Tags
+        var tags = await ScopedTags()
             .AsNoTracking()
             .Where(x => tagIds.Contains(x.Id))
             .Select(x => new
@@ -535,7 +539,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
 
         var recentEmergencies = await GetRecentEmergenciesAsync(take, ct);
 
-        var recentProximity = await _db.ProximityEvents
+        var recentProximity = await ScopedProximityEvents()
             .AsNoTracking()
             .OrderByDescending(x => x.EventTimestamp)
             .Take(take)
@@ -570,7 +574,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
         int take,
         CancellationToken ct = default)
     {
-        var currentLocations = await _db.CurrentLocations
+        var currentLocations = await ScopedCurrentLocations()
             .AsNoTracking()
             .Include(x => x.Tag)
             .Include(x => x.FloorMapZone)
@@ -638,18 +642,18 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
         var last5 = now.AddMinutes(-5);
         var lastHour = now.AddHours(-1);
 
-        var lastEventAt = await _db.RawEvents
+        var lastEventAt = await ScopedRawEvents()
             .OrderByDescending(x => x.EventTimestamp)
             .Select(x => (DateTime?)x.EventTimestamp)
             .FirstOrDefaultAsync(ct);
 
-        var eventsLastMinute = await _db.RawEvents.CountAsync(x => x.EventTimestamp >= lastMinute, ct);
-        var eventsLast5 = await _db.RawEvents.CountAsync(x => x.EventTimestamp >= last5, ct);
-        var failedLastHour = await _db.RawEvents.CountAsync(x =>
+        var eventsLastMinute = await ScopedRawEvents().CountAsync(x => x.EventTimestamp >= lastMinute, ct);
+        var eventsLast5 = await ScopedRawEvents().CountAsync(x => x.EventTimestamp >= last5, ct);
+        var failedLastHour = await ScopedRawEvents().CountAsync(x =>
             x.EventTimestamp >= lastHour &&
             x.ProcessingStatus == RawEventProcessingStatus.Failed, ct);
 
-        var processedLastHour = await _db.RawEvents.CountAsync(x =>
+        var processedLastHour = await ScopedRawEvents().CountAsync(x =>
             x.EventTimestamp >= lastHour &&
             x.ProcessingStatus == RawEventProcessingStatus.Processed, ct);
 
@@ -659,13 +663,13 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
             ? 100
             : Math.Round((decimal)processedLastHour * 100 / totalLastHour, 2);
 
-        var silentAnchors = await _db.Anchors.CountAsync(x =>
+        var silentAnchors = await ScopedAnchors().CountAsync(x =>
             x.IsActive &&
             (x.LastHeartbeatAt == null || x.LastHeartbeatAt < last5), ct);
 
-        var offlineAnchors = await _db.Anchors.CountAsync(x => x.Status == AnchorStatus.Offline, ct);
+        var offlineAnchors = await ScopedAnchors().CountAsync(x => x.Status == AnchorStatus.Offline, ct);
 
-        var latestHealth = await _db.AnchorHealthEvents
+        var latestHealth = await ScopedAnchorHealthEvents()
             .AsNoTracking()
             .Include(x => x.Anchor)
             .GroupBy(x => x.AnchorId)
@@ -694,7 +698,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
             ))
             .ToList();
 
-        var offlineProblemAnchors = await _db.Anchors
+        var offlineProblemAnchors = await ScopedAnchors()
             .AsNoTracking()
             .Where(x => x.Status == AnchorStatus.Offline ||
                         x.Status == AnchorStatus.Error ||
@@ -723,8 +727,8 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
             .Take(take)
             .ToList();
 
-        var totalAnchors = await _db.Anchors.CountAsync(ct);
-        var onlineAnchors = await _db.Anchors.CountAsync(x => x.Status == AnchorStatus.Online, ct);
+        var totalAnchors = await ScopedAnchors().CountAsync(ct);
+        var onlineAnchors = await ScopedAnchors().CountAsync(x => x.Status == AnchorStatus.Online, ct);
 
         var anchorScore = totalAnchors == 0 ? 100 : (int)Math.Round((decimal)onlineAnchors * 100 / totalAnchors);
         var eventScore = (int)Math.Min(100, successRate);
@@ -761,27 +765,27 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
         int take,
         CancellationToken ct = default)
     {
-        var critical = await _db.Tags.CountAsync(x =>
+        var critical = await ScopedTags().CountAsync(x =>
             x.BatteryLevel != null &&
             x.BatteryLevel <= 10, ct);
 
-        var low = await _db.Tags.CountAsync(x =>
+        var low = await ScopedTags().CountAsync(x =>
             x.BatteryLevel != null &&
             x.BatteryLevel <= 20, ct);
 
-        var avg = await _db.Tags
+        var avg = await ScopedTags()
             .Where(x => x.BatteryLevel != null)
             .Select(x => (decimal?)x.BatteryLevel)
             .AverageAsync(ct) ?? 0;
 
-        var lowBatteryPersonnelOnSite = await _db.CurrentLocations
+        var lowBatteryPersonnelOnSite = await ScopedCurrentLocations()
             .Include(x => x.Tag)
             .CountAsync(x =>
                 x.Tag.TagType == TagType.Personnel &&
                 x.Tag.BatteryLevel != null &&
                 x.Tag.BatteryLevel <= 20, ct);
 
-        var lowest = await _db.Tags
+        var lowest = await ScopedTags()
             .AsNoTracking()
             .Where(x => x.BatteryLevel != null)
             .OrderBy(x => x.BatteryLevel)
@@ -804,7 +808,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
             ))
             .ToListAsync(ct);
 
-        var onSite = await _db.CurrentLocations
+        var onSite = await ScopedCurrentLocations()
             .AsNoTracking()
             .Include(x => x.Tag)
             .Include(x => x.User)
@@ -823,7 +827,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
             ))
             .ToListAsync(ct);
 
-        var recentAlerts = await _db.BatteryEvents
+        var recentAlerts = await ScopedBatteryEvents()
             .AsNoTracking()
             .Include(x => x.Tag)
             .Include(x => x.Anchor)
@@ -857,7 +861,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
         int take,
         CancellationToken ct = default)
     {
-        var rawEvents = await _db.RawEvents
+        var rawEvents = await ScopedRawEvents()
             .AsNoTracking()
             .OrderByDescending(x => x.EventTimestamp)
             .Take(take)
@@ -875,7 +879,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
             ))
             .ToListAsync(ct);
 
-        var alarms = await _db.Alarms
+        var alarms = await ScopedAlarms()
             .AsNoTracking()
             .Include(x => x.Tag)
             .Include(x => x.Anchor)
@@ -895,7 +899,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
             ))
             .ToListAsync(ct);
 
-        var locations = await _db.CurrentLocations
+        var locations = await ScopedCurrentLocations()
             .AsNoTracking()
             .Include(x => x.Tag)
             .OrderByDescending(x => x.LastEventAt)
@@ -924,6 +928,147 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
         return new LiveFeedDashboardDto(merged);
     }
 
+    private IQueryable<Tag> ScopedTags()
+    {
+        var query = _db.Tags.AsQueryable();
+        if (HasUnrestrictedScope())
+            return query;
+
+        var companyIds = _currentUser.GetCurrentUserCompanyIds();
+        var branchIds = _currentUser.GetCurrentUserBranchIds();
+
+        return query.Where(x => x.Assignments.Any(a =>
+            a.UnassignedAt == null &&
+            (a.User.UserCompanies.Any(uc => companyIds.Contains(uc.CompanyId)) ||
+             a.User.UserBranches.Any(ub => branchIds.Contains(ub.BranchId)))));
+    }
+
+    private IQueryable<TagAssignment> ScopedTagAssignments()
+    {
+        var query = _db.TagAssignments.AsQueryable();
+        if (HasUnrestrictedScope())
+            return query;
+
+        var companyIds = _currentUser.GetCurrentUserCompanyIds();
+        var branchIds = _currentUser.GetCurrentUserBranchIds();
+
+        return query.Where(x =>
+            x.User.UserCompanies.Any(uc => companyIds.Contains(uc.CompanyId)) ||
+            x.User.UserBranches.Any(ub => branchIds.Contains(ub.BranchId)));
+    }
+
+    private IQueryable<Anchor> ScopedAnchors()
+    {
+        var query = _db.Anchors.AsQueryable();
+        if (HasUnrestrictedScope())
+            return query;
+
+        var companyIds = _currentUser.GetCurrentUserCompanyIds();
+        var branchIds = _currentUser.GetCurrentUserBranchIds();
+
+        return query.Where(x =>
+            (x.CompanyId.HasValue && companyIds.Contains(x.CompanyId.Value)) ||
+            (x.BranchId.HasValue && branchIds.Contains(x.BranchId.Value)));
+    }
+
+    private IQueryable<CurrentLocation> ScopedCurrentLocations()
+    {
+        var query = _db.CurrentLocations.AsQueryable();
+        if (HasUnrestrictedScope())
+            return query;
+
+        var companyIds = _currentUser.GetCurrentUserCompanyIds();
+        var branchIds = _currentUser.GetCurrentUserBranchIds();
+
+        return query.Where(x =>
+            (x.UserId.HasValue &&
+                (x.User!.UserCompanies.Any(uc => companyIds.Contains(uc.CompanyId)) ||
+                 x.User.UserBranches.Any(ub => branchIds.Contains(ub.BranchId)))) ||
+            x.Tag.Assignments.Any(a =>
+                a.UnassignedAt == null &&
+                (a.User.UserCompanies.Any(uc => companyIds.Contains(uc.CompanyId)) ||
+                 a.User.UserBranches.Any(ub => branchIds.Contains(ub.BranchId)))));
+    }
+
+    private IQueryable<Alarm> ScopedAlarms()
+    {
+        var query = _db.Alarms.AsQueryable();
+        if (HasUnrestrictedScope())
+            return query;
+
+        var companyIds = _currentUser.GetCurrentUserCompanyIds();
+        var branchIds = _currentUser.GetCurrentUserBranchIds();
+
+        return query.Where(x =>
+            (x.UserId.HasValue &&
+                (x.User!.UserCompanies.Any(uc => companyIds.Contains(uc.CompanyId)) ||
+                 x.User.UserBranches.Any(ub => branchIds.Contains(ub.BranchId)))) ||
+            (x.TagId.HasValue && x.Tag!.Assignments.Any(a =>
+                a.UnassignedAt == null &&
+                (a.User.UserCompanies.Any(uc => companyIds.Contains(uc.CompanyId)) ||
+                 a.User.UserBranches.Any(ub => branchIds.Contains(ub.BranchId))))) ||
+            (x.PeerTagId.HasValue && x.PeerTag!.Assignments.Any(a =>
+                a.UnassignedAt == null &&
+                (a.User.UserCompanies.Any(uc => companyIds.Contains(uc.CompanyId)) ||
+                 a.User.UserBranches.Any(ub => branchIds.Contains(ub.BranchId))))) ||
+            (x.AnchorId.HasValue &&
+                ((x.Anchor!.CompanyId.HasValue && companyIds.Contains(x.Anchor.CompanyId.Value)) ||
+                 (x.Anchor.BranchId.HasValue && branchIds.Contains(x.Anchor.BranchId.Value)))));
+    }
+
+    private IQueryable<LocationEvent> ScopedLocationEvents()
+    {
+        var scopedTags = ScopedTags();
+        return _db.LocationEvents.Where(x => scopedTags.Any(t => t.Id == x.TagId));
+    }
+
+    private IQueryable<EmergencyEvent> ScopedEmergencyEvents()
+    {
+        var scopedTags = ScopedTags();
+        return _db.EmergencyEvents.Where(x => scopedTags.Any(t => t.Id == x.TagId));
+    }
+
+    private IQueryable<ProximityEvent> ScopedProximityEvents()
+    {
+        var scopedTags = ScopedTags();
+        return _db.ProximityEvents.Where(x =>
+            scopedTags.Any(t => t.Id == x.TagId) ||
+            scopedTags.Any(t => t.Id == x.PeerTagId));
+    }
+
+    private IQueryable<BatteryEvent> ScopedBatteryEvents()
+    {
+        var scopedTags = ScopedTags();
+        var scopedAnchors = ScopedAnchors();
+        return _db.BatteryEvents.Where(x =>
+            scopedTags.Any(t => t.Id == x.TagId) ||
+            scopedAnchors.Any(a => a.Id == x.AnchorId));
+    }
+
+    private IQueryable<AnchorHealthEvent> ScopedAnchorHealthEvents()
+    {
+        var scopedAnchors = ScopedAnchors();
+        return _db.AnchorHealthEvents.Where(x => scopedAnchors.Any(a => a.Id == x.AnchorId));
+    }
+
+    private IQueryable<RawEvent> ScopedRawEvents()
+    {
+        var query = _db.RawEvents.AsQueryable();
+        if (HasUnrestrictedScope())
+            return query;
+
+        var scopedTags = ScopedTags();
+        var scopedAnchors = ScopedAnchors();
+
+        return query.Where(x =>
+            (x.TagExternalId != null && scopedTags.Any(t => t.ExternalId == x.TagExternalId)) ||
+            (x.AnchorExternalId != null && scopedAnchors.Any(a => a.ExternalId == x.AnchorExternalId)));
+    }
+
+    private bool HasUnrestrictedScope()
+        => _currentUser.IsSystemUser() ||
+           _currentUser.GetRoles().Any(x => x.Equals("super_admin", StringComparison.OrdinalIgnoreCase));
+
     private async Task<IReadOnlyList<PersonnelActivityDto>> BuildPersonnelActivityListAsync(
         IEnumerable<dynamic> tagCounts,
         CancellationToken ct)
@@ -936,7 +1081,7 @@ public sealed class DashboardReadRepository : IDashboardReadRepository
             int count = item.Count;
             DateTime? lastSeenAt = item.LastSeenAt;
 
-            var tag = await _db.Tags
+            var tag = await ScopedTags()
                 .AsNoTracking()
                 .Include(x => x.Assignments)
                 .ThenInclude(x => x.User)

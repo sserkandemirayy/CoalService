@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -8,14 +8,16 @@ namespace Infrastructure.Repositories;
 public class AnchorHealthEventRepository : IAnchorHealthEventRepository
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public AnchorHealthEventRepository(AppDbContext db)
+    public AnchorHealthEventRepository(AppDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<AnchorHealthEvent?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.AnchorHealthEvents.FirstOrDefaultAsync(x => x.Id == id, ct);
+        => await Scoped().FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task AddAsync(AnchorHealthEvent healthEvent, CancellationToken ct = default)
         => await _db.AnchorHealthEvents.AddAsync(healthEvent, ct);
@@ -26,7 +28,7 @@ public class AnchorHealthEventRepository : IAnchorHealthEventRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.AnchorHealthEvents.Where(x => x.AnchorId == anchorId);
+        var query = Scoped().Where(x => x.AnchorId == anchorId);
 
         var total = await query.CountAsync(ct);
 
@@ -37,6 +39,12 @@ public class AnchorHealthEventRepository : IAnchorHealthEventRepository
             .ToListAsync(ct);
 
         return (items, total);
+    }
+
+    private IQueryable<AnchorHealthEvent> Scoped()
+    {
+        var anchors = RepositoryScope.Anchors(_db, _currentUser);
+        return _db.AnchorHealthEvents.Where(x => anchors.Any(a => a.Id == x.AnchorId));
     }
 
     public IQueryable<AnchorHealthEvent> Query() => _db.AnchorHealthEvents.AsQueryable();

@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 
 namespace Domain.Entities;
 
@@ -45,6 +45,9 @@ public class TagDioValueSnapshot : BaseEntity
         DateTime lastReportedAt,
         bool value)
     {
+        if (lastReportedAt < LastReportedAt)
+            return;
+
         LastRawEventId = lastRawEventId;
         LastReportedAt = lastReportedAt;
         Value = value;

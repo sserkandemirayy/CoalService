@@ -5,6 +5,7 @@ using Domain.Entities;
 using Domain.Enums;
 using MediatR;
 using Application.Common.Realtime;
+using Application.Common.Notifications;
 
 namespace Application.EventProcessing.Commands;
 
@@ -18,6 +19,8 @@ public sealed class ProcessAnchorStatusChangedCommandHandler : IRequestHandler<P
     private readonly IAlarmRepository _alarmRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IRealtimeNotifier _realtimeNotifier;
+    private readonly INotificationService _notificationService;
+
 
     public ProcessAnchorStatusChangedCommandHandler(
         IRawEventRepository rawEventRepository,
@@ -25,7 +28,8 @@ public sealed class ProcessAnchorStatusChangedCommandHandler : IRequestHandler<P
         IAnchorStatusEventRepository anchorStatusEventRepository,
         IAlarmRepository alarmRepository,
         IUnitOfWork unitOfWork,
-        IRealtimeNotifier realtimeNotifier)
+        IRealtimeNotifier realtimeNotifier,
+        INotificationService notificationService)
     {
         _rawEventRepository = rawEventRepository;
         _anchorRepository = anchorRepository;
@@ -33,6 +37,7 @@ public sealed class ProcessAnchorStatusChangedCommandHandler : IRequestHandler<P
         _alarmRepository = alarmRepository;
         _unitOfWork = unitOfWork;
         _realtimeNotifier = realtimeNotifier;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<Guid>> Handle(ProcessAnchorStatusChangedCommand request, CancellationToken ct)
@@ -139,6 +144,26 @@ public sealed class ProcessAnchorStatusChangedCommandHandler : IRequestHandler<P
                     null,
                     createdAlarm.StartedAt),
                 ct);
+
+            await _notificationService.SendToPermissionAsync(
+                    "view_devices",
+                    $"Anchor Durumu: {status}",
+                    $"{anchor.Code} anchor durumu {status} olarak değişti.",
+                    NotificationType.Anchor,
+                    status == AnchorStatus.Error ? NotificationSeverity.Critical : NotificationSeverity.Warning,
+                    "Alarm",
+                    createdAlarm.Id,
+                    $"/anchors/{anchor.Id}",
+                    EventProcessingHelper.Serialize(new
+                    {
+                        AlarmId = createdAlarm.Id,
+                        AnchorId = anchor.Id,
+                        AnchorCode = anchor.Code,
+                        Status = status.ToString(),
+                        PreviousStatus = previousStatus.ToString(),
+                        Reason = request.Payload.Reason
+                    }),
+                    ct);
         }
 
         return Result<Guid>.Success(statusEvent.Id);

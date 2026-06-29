@@ -5,6 +5,7 @@ using Domain.Entities;
 using Domain.Enums;
 using MediatR;
 using Application.Common.Realtime;
+using Application.Common.Notifications;
 
 namespace Application.EventProcessing.Commands;
 
@@ -20,6 +21,7 @@ public sealed class ProcessBatteryLevelReportedCommandHandler : IRequestHandler<
     private readonly ITagAssignmentRepository _tagAssignmentRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IRealtimeNotifier _realtimeNotifier;
+    private readonly INotificationService _notificationService;
 
     public ProcessBatteryLevelReportedCommandHandler(
         IRawEventRepository rawEventRepository,
@@ -29,7 +31,8 @@ public sealed class ProcessBatteryLevelReportedCommandHandler : IRequestHandler<
         IAlarmRepository alarmRepository,
         ITagAssignmentRepository tagAssignmentRepository,
         IUnitOfWork unitOfWork,
-        IRealtimeNotifier realtimeNotifier)
+        IRealtimeNotifier realtimeNotifier,
+        INotificationService notificationService)
     {
         _rawEventRepository = rawEventRepository;
         _tagRepository = tagRepository;
@@ -39,6 +42,7 @@ public sealed class ProcessBatteryLevelReportedCommandHandler : IRequestHandler<
         _tagAssignmentRepository = tagAssignmentRepository;
         _unitOfWork = unitOfWork;
         _realtimeNotifier = realtimeNotifier;
+        _notificationService = notificationService;
     }
 
     public async Task<Result<Guid>> Handle(ProcessBatteryLevelReportedCommand request, CancellationToken ct)
@@ -124,6 +128,26 @@ public sealed class ProcessBatteryLevelReportedCommandHandler : IRequestHandler<
                     anchor.ExternalId,
                     assignment?.UserId,
                     alarm.StartedAt),
+                ct);
+
+            await _notificationService.SendToPermissionAsync(
+                "view_devices",
+                "Düşük Batarya",
+                $"{tag.Code} batarya seviyesi %{request.Payload.BatteryLevel}.",
+                NotificationType.Battery,
+                severity == AlarmSeverity.Critical ? NotificationSeverity.Critical : NotificationSeverity.Warning,
+                "Alarm",
+                alarm.Id,
+                $"/tags/{tag.Id}",
+                EventProcessingHelper.Serialize(new
+                {
+                    AlarmId = alarm.Id,
+                    TagId = tag.Id,
+                    TagCode = tag.Code,
+                    BatteryLevel = request.Payload.BatteryLevel,
+                    AnchorId = anchor.Id,
+                    AnchorCode = anchor.Code
+                }),
                 ct);
         }
 

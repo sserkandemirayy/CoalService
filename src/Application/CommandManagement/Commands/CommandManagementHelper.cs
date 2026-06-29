@@ -22,7 +22,7 @@ internal static class CommandManagementHelper
         string externalId,
         CancellationToken ct)
     {
-        var tag = await tags.GetByExternalIdAsync(externalId, ct);
+        var tag = await tags.GetScopedByExternalIdAsync(externalId, ct);
         return tag is null
             ? Result<Tag>.Failure("Tag not found.")
             : Result<Tag>.Success(tag);
@@ -33,7 +33,7 @@ internal static class CommandManagementHelper
         string externalId,
         CancellationToken ct)
     {
-        var anchor = await anchors.GetByExternalIdAsync(externalId, ct);
+        var anchor = await anchors.GetScopedByExternalIdAsync(externalId, ct);
         return anchor is null
             ? Result<Anchor>.Failure("Anchor not found.")
             : Result<Anchor>.Success(anchor);

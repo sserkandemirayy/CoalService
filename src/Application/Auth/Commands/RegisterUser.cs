@@ -1,5 +1,6 @@
 using Application.Common.Models;
 using Domain.Abstractions;
+using Domain.Constants;
 using Domain.Entities;
 using FluentValidation;
 using MediatR;
@@ -76,10 +77,10 @@ public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, Result<A
         if (existing is not null)
             return Result<AuthResponse>.Failure("Email already exists");
 
-        // Default user type al ("user" koduyla belirlenecek)
-        var userType = await _userTypes.FindByCodeAsync("user", ct);
+        // Self-registered accounts start with the least privileged RTLS profile.
+        var userType = await _userTypes.FindByCodeAsync(RtlsUserTypeCodes.Visitor, ct);
         if (userType is null)
-            return Result<AuthResponse>.Failure("System user type 'user' is not configured");
+            return Result<AuthResponse>.Failure($"Default user type '{RtlsUserTypeCodes.Visitor}' is not configured");
 
         // Yeni user oluþtur
         var user = User.Create(
@@ -92,10 +93,10 @@ public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, Result<A
 
         await _users.AddAsync(user, ct);
 
-        // Default rol ata ("user")
-        var role = await _roles.FindByNameAsync("user", ct);
+        // Default rol ata ("viewer")
+        var role = await _roles.FindByNameAsync(RtlsRoleNames.Viewer, ct);
         if (role == null)
-            return Result<AuthResponse>.Failure("Default role 'user' is not configured");
+            return Result<AuthResponse>.Failure($"Default role '{RtlsRoleNames.Viewer}' is not configured");
 
         await _users.AssignRoleAsync(user, role, ct);
 
@@ -114,7 +115,7 @@ public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, Result<A
                 "User",
                 user.Id,
                 null,
-                "Self registered user (default user type & role)"
+                $"Self registered user (default user type={RtlsUserTypeCodes.Visitor}, role={RtlsRoleNames.Viewer})"
             ), ct);
 
         await _uow.SaveChangesAsync(ct);

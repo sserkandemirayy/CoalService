@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "7b3aa7e4-2d28-43b4-b715-faec5852d53e",
-    "name": "RTLS Core API - Complete Working Collection",
-    "description": "RTLS Core API için uçtan uca Postman Collection.\n\nKullanım sırası:\n1. Environment dosyasını import et.\n2. baseUrl değerini kendi API adresine göre düzenle.\n3. 00 - Auth / Setup > Login çalıştır.\n4. 01 - Bootstrap Seed IDs klasörünü sırayla çalıştır.\n5. Sonra Device, Tracking, Event, Alarm, Command ve Integration klasörlerini kullan.\n\nBu collection seed data varsayımıyla hazırlanmıştır:\n- tag-person-001\n- tag-person-002\n- tag-vehicle-001\n- tag-asset-001\n- anchor-001\n- anchor-004\n- anchor-005\n- anchor-006\n\nNotlar:\n- Normal endpointler Bearer token kullanır.\n- Integration endpointleri X-Integration-Api-Key header kullanır.\n- Event POST requestlerinde event id ve timestamp otomatik üretilir.\n\nGüncelleme: Dashboard ve Maps klasörleri eklendi. Dashboard'a son personel performansı, risk, zone occupancy, system health, battery discipline ve live-feed endpointleri dahil edildi.",
+    "_postman_id": "bb941f22-66d2-436b-8e2e-39626543a7f1",
+    "name": "RTLS Core API - Dashboard Maps Notifications FINAL",
+    "description": "RTLS Core API için uçtan uca Postman Collection.\n\nKullanım sırası:\n1. Environment dosyasını import et.\n2. baseUrl değerini kendi API adresine göre düzenle.\n3. 00 - Auth / Setup > Login çalıştır.\n4. 01 - Bootstrap Seed IDs klasörünü sırayla çalıştır.\n5. Sonra Device, Tracking, Event, Alarm, Command ve Integration klasörlerini kullan.\n\nBu collection seed data varsayımıyla hazırlanmıştır:\n- tag-person-001\n- tag-person-002\n- tag-vehicle-001\n- tag-asset-001\n- anchor-001\n- anchor-004\n- anchor-005\n- anchor-006\n\nNotlar:\n- Normal endpointler Bearer token kullanır.\n- Integration endpointleri X-Integration-Api-Key header kullanır.\n- Event POST requestlerinde event id ve timestamp otomatik üretilir.\n\nGüncelleme: Dashboard ve Maps klasörleri eklendi. Dashboard'a son personel performansı, risk, zone occupancy, system health, battery discipline ve live-feed endpointleri dahil edildi.\n\nGüncelleme: Notifications klasörü eklendi. Custom notification, template notification, permission bazlı notification, unread/read işlemleri ve template yönetim requestleri dahil edildi.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "15357053"
   },
@@ -5989,7 +5989,7 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "src": []
+                  "value": null
                 }
               ]
             },
@@ -6406,6 +6406,480 @@
         }
       ],
       "description": "Map/FloorMap endpointleri: harita master, dosya upload, calibration, anchor pozisyonları ve zone yönetimi."
+    },
+    {
+      "name": "13 - Notifications",
+      "item": [
+        {
+          "name": "Notification Templates",
+          "item": [
+            {
+              "name": "Templates - List / save notificationTemplateId",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 2xx\", function () { pm.expect(pm.response.code).to.be.within(200,299); });",
+                      "try {",
+                      " const data = pm.response.json();",
+                      " const arr = Array.isArray(data) ? data : (data.items || data.value || data.data || []);",
+                      " if (arr.length > 0) { const id = arr[0].id || arr[0].Id; pm.environment.set(\"notificationTemplateId\", id); console.log(\"SET notificationTemplateId\", id); }",
+                      "} catch(e) { console.warn(e); }"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notification-templates",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notification-templates"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Templates - Create Demo Template",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 2xx\", function () { pm.expect(pm.response.code).to.be.within(200,299); });",
+                      "try {",
+                      " const data = pm.response.json();",
+                      " const id = data.id || data.Id || data.value || data.Value;",
+                      " if (id) { pm.environment.set(\"createdNotificationTemplateId\", id); pm.environment.set(\"notificationTemplateId\", id); console.log(\"SET createdNotificationTemplateId\", id); }",
+                      "} catch(e) { console.warn(e); }"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"POSTMAN_TEMPLATE_{{$timestamp}}\",\n  \"name\": \"Postman Template\",\n  \"titleTemplate\": \"Postman Template Başlık\",\n  \"messageTemplate\": \"{Message}\",\n  \"type\": \"Announcement\",\n  \"severity\": \"Info\",\n  \"actionUrlTemplate\": \"/dashboard\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/notification-templates",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notification-templates"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Templates - Update Created Template",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 2xx\", function () { pm.expect(pm.response.code).to.be.within(200,299); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Postman Template Updated\",\n  \"titleTemplate\": \"Postman Template Güncellendi\",\n  \"messageTemplate\": \"{Message}\",\n  \"type\": \"Announcement\",\n  \"severity\": \"Warning\",\n  \"actionUrlTemplate\": \"/dashboard\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/notification-templates/{{createdNotificationTemplateId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notification-templates",
+                    "{{createdNotificationTemplateId}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Templates - Delete Created Template",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 2xx\", function () { pm.expect(pm.response.code).to.be.within(200,299); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notification-templates/{{createdNotificationTemplateId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notification-templates",
+                    "{{createdNotificationTemplateId}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Notifications - Send Custom Notification",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Custom Bildirim\",\n  \"message\": \"Bu bildirim Postman collection üzerinden oluşturuldu.\",\n  \"severity\": \"Info\",\n  \"targetType\": \"Broadcast\",\n  \"targetIds\": [],\n  \"type\": \"Announcement\",\n  \"sourceType\": \"Postman\",\n  \"sourceId\": null,\n  \"actionUrl\": \"/dashboard\",\n  \"data\": {\n    \"source\": \"postman\",\n    \"demo\": true\n  },\n  \"expiresAt\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/custom",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "custom"
+              ]
+            },
+            "description": "Requires ManageSettings permission. Creates a custom notification and sends it to the selected target. targetType can be Broadcast, Users, Roles, Company, Branch."
+          },
+          "response": []
+        },
+        {
+          "name": "Notifications - Send Custom Notification To Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Kullanıcıya Özel Bildirim\",\n  \"message\": \"Bu bildirim sadece targetIds içindeki kullanıcılara gider.\",\n  \"severity\": \"Warning\",\n  \"targetType\": \"Users\",\n  \"targetIds\": [\n    \"{{targetUserId}}\"\n  ],\n  \"type\": \"Custom\",\n  \"sourceType\": \"Postman\",\n  \"sourceId\": null,\n  \"actionUrl\": \"/dashboard\",\n  \"data\": {\n    \"source\": \"postman\",\n    \"target\": \"users\"\n  },\n  \"expiresAt\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/custom",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "custom"
+              ]
+            },
+            "description": "Requires ManageSettings permission. Creates a custom notification and sends it to the selected target. targetType can be Broadcast, Users, Roles, Company, Branch."
+          },
+          "response": []
+        },
+        {
+          "name": "Notifications - My Notifications / save notificationId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 2xx\", function () { pm.expect(pm.response.code).to.be.within(200,299); });",
+                  "try {",
+                  "  const data = pm.response.json();",
+                  "  const arr = Array.isArray(data) ? data : (data.items || data.value || data.data || data.notifications || []);",
+                  "  if (arr.length > 0) {",
+                  "    const id = arr[0].id || arr[0].Id;",
+                  "    pm.environment.set(\"notificationId\", id);",
+                  "    console.log(\"SET notificationId\", id);",
+                  "  } else {",
+                  "    console.warn(\"No notification found. First run: Notifications - Send Custom Broadcast, then run this request again.\");",
+                  "  }",
+                  "} catch(e) { console.warn(e); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications?page=1&pageSize=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Notifications - Unread Count",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 2xx\", function () { pm.expect(pm.response.code).to.be.within(200,299); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/unread-count",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "unread-count"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Notifications - Mark As Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 2xx\", function () { pm.expect(pm.response.code).to.be.within(200,299); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Notifications - Mark All As Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 2xx\", function () { pm.expect(pm.response.code).to.be.within(200,299); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "read-all"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Notifications - Delete / Archive",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 2xx\", function () { pm.expect(pm.response.code).to.be.within(200,299); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/{{notificationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "{{notificationId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Notifications - Send From Template",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 2xx\", function () { pm.expect(pm.response.code).to.be.within(200,299); });",
+                  "try {",
+                  " const data = pm.response.json();",
+                  " const id = data.id || data.Id || data.value || data.Value;",
+                  " if (id) { pm.environment.set(\"notificationId\", id); pm.environment.set(\"customNotificationId\", id); console.log(\"SET notificationId\", id); }",
+                  "} catch(e) { console.warn(e); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"templateCode\": \"SYSTEM_ANNOUNCEMENT\",\n  \"targetType\": \"Broadcast\",\n  \"targetIds\": [],\n  \"parameters\": {\n    \"Message\": \"Postman üzerinden template bildirim testi.\"\n  },\n  \"sourceType\": \"Postman\",\n  \"sourceId\": null,\n  \"data\": {\n    \"source\": \"postman\",\n    \"template\": true\n  },\n  \"expiresAt\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/from-template",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "from-template"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "auth": {
@@ -6449,6 +6923,26 @@
     },
     {
       "key": "anchorMapPositionId",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    },
+    {
+      "key": "customNotificationId",
+      "value": ""
+    },
+    {
+      "key": "templateNotificationId",
+      "value": ""
+    },
+    {
+      "key": "notificationTemplateId",
+      "value": ""
+    },
+    {
+      "key": "createdNotificationTemplateId",
       "value": ""
     }
   ]

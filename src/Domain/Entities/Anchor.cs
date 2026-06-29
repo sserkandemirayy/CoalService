@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Enums;
 using System.Security.Claims;
 
@@ -91,6 +91,9 @@ public class Anchor : BaseEntity
 
     public void RegisterHeartbeat(DateTime eventAt, string? ipAddress = null)
     {
+        if (LastHeartbeatAt.HasValue && eventAt < LastHeartbeatAt.Value)
+            return;
+
         LastHeartbeatAt = eventAt;
         LastStatusChangedAt ??= eventAt;
         if (!string.IsNullOrWhiteSpace(ipAddress))
@@ -102,6 +105,9 @@ public class Anchor : BaseEntity
 
     public void ChangeStatus(AnchorStatus newStatus, DateTime eventAt)
     {
+        if (LastStatusChangedAt.HasValue && eventAt < LastStatusChangedAt.Value)
+            return;
+
         Status = newStatus;
         LastStatusChangedAt = eventAt;
     }

@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Persistence;
@@ -9,14 +9,16 @@ namespace Infrastructure.Repositories;
 public class CommandRequestRepository : ICommandRequestRepository
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public CommandRequestRepository(AppDbContext db)
+    public CommandRequestRepository(AppDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<CommandRequest?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.CommandRequests.FirstOrDefaultAsync(x => x.Id == id, ct);
+        => await ApplyScope(_db.CommandRequests).FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task AddAsync(CommandRequest commandRequest, CancellationToken ct = default)
         => await _db.CommandRequests.AddAsync(commandRequest, ct);
@@ -38,7 +40,7 @@ public class CommandRequestRepository : ICommandRequestRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.CommandRequests.AsQueryable();
+        var query = ApplyScope(_db.CommandRequests);
 
         if (commandType.HasValue)
             query = query.Where(x => x.CommandType == commandType.Value);
@@ -75,7 +77,7 @@ public class CommandRequestRepository : ICommandRequestRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.CommandRequests.Where(x => x.TagId == tagId);
+        var query = ApplyScope(_db.CommandRequests).Where(x => x.TagId == tagId);
 
         var total = await query.CountAsync(ct);
 
@@ -94,7 +96,7 @@ public class CommandRequestRepository : ICommandRequestRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.CommandRequests.Where(x => x.AnchorId == anchorId);
+        var query = ApplyScope(_db.CommandRequests).Where(x => x.AnchorId == anchorId);
 
         var total = await query.CountAsync(ct);
 
@@ -108,4 +110,28 @@ public class CommandRequestRepository : ICommandRequestRepository
     }
 
     public IQueryable<CommandRequest> Query() => _db.CommandRequests.AsQueryable();
+
+    private IQueryable<CommandRequest> ApplyScope(IQueryable<CommandRequest> query)
+    {
+        if (HasUnrestrictedScope())
+            return query;
+
+        var companyIds = _currentUser.GetCurrentUserCompanyIds();
+        var branchIds = _currentUser.GetCurrentUserBranchIds();
+
+        return query.Where(x =>
+            x.RequestedByUser.UserCompanies.Any(uc => companyIds.Contains(uc.CompanyId)) ||
+            x.RequestedByUser.UserBranches.Any(ub => branchIds.Contains(ub.BranchId)) ||
+            (x.TagId.HasValue && x.Tag!.Assignments.Any(a =>
+                a.UnassignedAt == null &&
+                (a.User.UserCompanies.Any(uc => companyIds.Contains(uc.CompanyId)) ||
+                 a.User.UserBranches.Any(ub => branchIds.Contains(ub.BranchId))))) ||
+            (x.AnchorId.HasValue &&
+                ((x.Anchor!.CompanyId.HasValue && companyIds.Contains(x.Anchor.CompanyId.Value)) ||
+                 (x.Anchor.BranchId.HasValue && branchIds.Contains(x.Anchor.BranchId.Value)))));
+    }
+
+    private bool HasUnrestrictedScope()
+        => _currentUser.IsSystemUser() ||
+           _currentUser.GetRoles().Any(x => x.Equals("super_admin", StringComparison.OrdinalIgnoreCase));
 }

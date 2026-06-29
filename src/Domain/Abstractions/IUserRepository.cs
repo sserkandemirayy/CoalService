@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+using Domain.Entities;
 
 namespace Domain.Abstractions;
 
@@ -55,10 +55,7 @@ public interface IUserRepository
 
     Task<User?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default);
 
-    Task<IEnumerable<User>> GetPatientsAsync(CancellationToken ct);
-    Task<User?> GetPatientByIdAsync(Guid id, CancellationToken ct = default);
 
     
 
 }
-

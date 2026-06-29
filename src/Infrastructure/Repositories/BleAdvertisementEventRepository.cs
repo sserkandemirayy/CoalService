@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -8,14 +8,16 @@ namespace Infrastructure.Repositories;
 public class BleAdvertisementEventRepository : IBleAdvertisementEventRepository
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public BleAdvertisementEventRepository(AppDbContext db)
+    public BleAdvertisementEventRepository(AppDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<BleAdvertisementEvent?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.BleAdvertisementEvents.FirstOrDefaultAsync(x => x.Id == id, ct);
+        => await Scoped().FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task AddAsync(BleAdvertisementEvent entity, CancellationToken ct = default)
         => await _db.BleAdvertisementEvents.AddAsync(entity, ct);
@@ -26,7 +28,7 @@ public class BleAdvertisementEventRepository : IBleAdvertisementEventRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.BleAdvertisementEvents.Where(x => x.TagId == tagId);
+        var query = Scoped().Where(x => x.TagId == tagId);
 
         var total = await query.CountAsync(ct);
 
@@ -45,7 +47,7 @@ public class BleAdvertisementEventRepository : IBleAdvertisementEventRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.BleAdvertisementEvents.Where(x => x.AnchorId == anchorId);
+        var query = Scoped().Where(x => x.AnchorId == anchorId);
 
         var total = await query.CountAsync(ct);
 
@@ -56,6 +58,13 @@ public class BleAdvertisementEventRepository : IBleAdvertisementEventRepository
             .ToListAsync(ct);
 
         return (items, total);
+    }
+
+    private IQueryable<BleAdvertisementEvent> Scoped()
+    {
+        var tags = RepositoryScope.Tags(_db, _currentUser);
+        var anchors = RepositoryScope.Anchors(_db, _currentUser);
+        return _db.BleAdvertisementEvents.Where(x => tags.Any(t => t.Id == x.TagId) || anchors.Any(a => a.Id == x.AnchorId));
     }
 
     public IQueryable<BleAdvertisementEvent> Query() => _db.BleAdvertisementEvents.AsQueryable();

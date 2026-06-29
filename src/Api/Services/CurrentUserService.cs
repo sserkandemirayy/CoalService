@@ -21,6 +21,7 @@ public class CurrentUserService : ICurrentUserService
 
     // Cache tutmak için (her request’te sadece 1 kez sorgu)
     private List<Guid>? _cachedCompanyIds;
+    private List<Guid>? _cachedBranchIds;
 
     public CurrentUserService(IHttpContextAccessor httpContextAccessor, IServiceScopeFactory scopeFactory)
     {
@@ -106,5 +107,25 @@ public class CurrentUserService : ICurrentUserService
             .ToList();
 
         return _cachedCompanyIds;
+    }
+
+    public List<Guid> GetCurrentUserBranchIds()
+    {
+        if (_cachedBranchIds != null)
+            return _cachedBranchIds;
+
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty || userId == SystemUserId)
+            return new List<Guid>();
+
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        _cachedBranchIds = db.UserBranches
+            .Where(x => x.UserId == userId)
+            .Select(x => x.BranchId)
+            .ToList();
+
+        return _cachedBranchIds;
     }
 }

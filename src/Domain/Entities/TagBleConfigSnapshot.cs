@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 
 namespace Domain.Entities;
 
@@ -51,6 +51,9 @@ public class TagBleConfigSnapshot : BaseEntity
         long advertisementInterval,
         bool meshEnabled)
     {
+        if (lastReportedAt < LastReportedAt)
+            return;
+
         LastRawEventId = lastRawEventId;
         LastReportedAt = lastReportedAt;
         Enabled = enabled;

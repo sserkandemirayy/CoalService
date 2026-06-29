@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -8,14 +8,16 @@ namespace Infrastructure.Repositories;
 public class UwbTagToTagRangingEventRepository : IUwbTagToTagRangingEventRepository
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public UwbTagToTagRangingEventRepository(AppDbContext db)
+    public UwbTagToTagRangingEventRepository(AppDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<UwbTagToTagRangingEvent?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.UwbTagToTagRangingEvents.FirstOrDefaultAsync(x => x.Id == id, ct);
+        => await Scoped().FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task AddAsync(UwbTagToTagRangingEvent uwbTagToTagRangingEvent, CancellationToken ct = default)
         => await _db.UwbTagToTagRangingEvents.AddAsync(uwbTagToTagRangingEvent, ct);
@@ -26,7 +28,7 @@ public class UwbTagToTagRangingEventRepository : IUwbTagToTagRangingEventReposit
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.UwbTagToTagRangingEvents
+        var query = Scoped()
             .Where(x => x.TagId == tagId || x.PeerTagId == tagId);
 
         var total = await query.CountAsync(ct);
@@ -38,6 +40,12 @@ public class UwbTagToTagRangingEventRepository : IUwbTagToTagRangingEventReposit
             .ToListAsync(ct);
 
         return (items, total);
+    }
+
+    private IQueryable<UwbTagToTagRangingEvent> Scoped()
+    {
+        var tags = RepositoryScope.Tags(_db, _currentUser);
+        return _db.UwbTagToTagRangingEvents.Where(x => tags.Any(t => t.Id == x.TagId) || tags.Any(t => t.Id == x.PeerTagId));
     }
 
     public IQueryable<UwbTagToTagRangingEvent> Query() => _db.UwbTagToTagRangingEvents.AsQueryable();

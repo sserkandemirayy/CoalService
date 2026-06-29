@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Persistence;
@@ -9,17 +9,22 @@ namespace Infrastructure.Repositories;
 public class AnchorRepository : IAnchorRepository
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserService _currentUser;
 
-    public AnchorRepository(AppDbContext db)
+    public AnchorRepository(AppDbContext db, ICurrentUserService currentUser)
     {
         _db = db;
+        _currentUser = currentUser;
     }
 
     public async Task<Anchor?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _db.Anchors.FirstOrDefaultAsync(x => x.Id == id, ct);
+        => await ApplyScope(_db.Anchors).FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task<Anchor?> GetByExternalIdAsync(string externalId, CancellationToken ct = default)
         => await _db.Anchors.FirstOrDefaultAsync(x => x.ExternalId == externalId, ct);
+
+    public async Task<Anchor?> GetScopedByExternalIdAsync(string externalId, CancellationToken ct = default)
+        => await ApplyScope(_db.Anchors).FirstOrDefaultAsync(x => x.ExternalId == externalId, ct);
 
     public async Task<Anchor?> GetByCodeAsync(string code, CancellationToken ct = default)
         => await _db.Anchors.FirstOrDefaultAsync(x => x.Code == code, ct);
@@ -42,7 +47,7 @@ public class AnchorRepository : IAnchorRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _db.Anchors.AsQueryable();
+        var query = ApplyScope(_db.Anchors);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -74,10 +79,27 @@ public class AnchorRepository : IAnchorRepository
     }
 
     public async Task<int> CountAsync(CancellationToken ct = default)
-        => await _db.Anchors.CountAsync(ct);
+        => await ApplyScope(_db.Anchors).CountAsync(ct);
 
     public async Task<int> CountByStatusAsync(AnchorStatus status, CancellationToken ct = default)
-        => await _db.Anchors.CountAsync(x => x.Status == status, ct);
+        => await ApplyScope(_db.Anchors).CountAsync(x => x.Status == status, ct);
 
     public IQueryable<Anchor> Query() => _db.Anchors.AsQueryable();
+
+    private IQueryable<Anchor> ApplyScope(IQueryable<Anchor> query)
+    {
+        if (HasUnrestrictedScope())
+            return query;
+
+        var companyIds = _currentUser.GetCurrentUserCompanyIds();
+        var branchIds = _currentUser.GetCurrentUserBranchIds();
+
+        return query.Where(x =>
+            (x.CompanyId.HasValue && companyIds.Contains(x.CompanyId.Value)) ||
+            (x.BranchId.HasValue && branchIds.Contains(x.BranchId.Value)));
+    }
+
+    private bool HasUnrestrictedScope()
+        => _currentUser.IsSystemUser() ||
+           _currentUser.GetRoles().Any(x => x.Equals("super_admin", StringComparison.OrdinalIgnoreCase));
 }

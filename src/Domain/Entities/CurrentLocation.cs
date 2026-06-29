@@ -1,4 +1,4 @@
-﻿using Domain.Abstractions;
+using Domain.Abstractions;
 
 namespace Domain.Entities;
 
@@ -80,6 +80,9 @@ public class CurrentLocation : BaseEntity
         Guid? floorMapId = null,
         Guid? floorMapZoneId = null)
     {
+        if (lastEventAt < LastEventAt)
+            return;
+
         UserId = userId;
         FloorMapId = floorMapId;
         FloorMapZoneId = floorMapZoneId;
