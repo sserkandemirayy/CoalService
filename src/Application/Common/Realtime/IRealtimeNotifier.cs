@@ -1,29 +1,29 @@
-﻿namespace Application.Common.Realtime;
+﻿using Application.DTOs.Tracking;
+
+namespace Application.Common.Realtime;
 
 public interface IRealtimeNotifier
 {
-    Task LocationUpdatedAsync(LocationUpdatedRealtimeDto payload, CancellationToken ct = default);
-    Task BatteryUpdatedAsync(BatteryUpdatedRealtimeDto payload, CancellationToken ct = default);
-    Task AlarmRaisedAsync(AlarmRaisedRealtimeDto payload, CancellationToken ct = default);
-    Task AnchorStatusChangedAsync(AnchorStatusChangedRealtimeDto payload, CancellationToken ct = default);
-    Task TagStatusChangedAsync(TagStatusChangedRealtimeDto payload, CancellationToken ct = default);
-}
+    Task LocationUpdatedAsync(
+        CurrentLocationDto payload,
+        CancellationToken ct = default);
 
-public sealed record LocationUpdatedRealtimeDto(
-    Guid TagId,
-    string TagExternalId,
-    string TagCode,
-    Guid? UserId,
-    Guid? FloorMapId,
-    Guid? FloorMapZoneId,
-    decimal X,
-    decimal Y,
-    decimal Z,
-    decimal Accuracy,
-    decimal Confidence,
-    DateTime EventAt,
-    int AnchorCount
-);
+    Task BatteryUpdatedAsync(
+        BatteryUpdatedRealtimeDto payload,
+        CancellationToken ct = default);
+
+    Task AlarmRaisedAsync(
+        AlarmRaisedRealtimeDto payload,
+        CancellationToken ct = default);
+
+    Task AnchorStatusChangedAsync(
+        AnchorStatusChangedRealtimeDto payload,
+        CancellationToken ct = default);
+
+    Task TagStatusChangedAsync(
+        TagStatusChangedRealtimeDto payload,
+        CancellationToken ct = default);
+}
 
 public sealed record BatteryUpdatedRealtimeDto(
     Guid TagId,
@@ -65,6 +65,10 @@ public sealed record TagStatusChangedRealtimeDto(
     Guid TagId,
     string TagExternalId,
     string? TagCode,
+    string TagType,
+    Guid? UserId,
+    string? UserFullName,
+    string? UserIdentifier,
     string Status,
     DateTime EventTimestamp
 );

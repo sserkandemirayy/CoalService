@@ -36,6 +36,7 @@ public class Alarm : BaseEntity
     public string? Description { get; private set; }
     public string? DataJson { get; private set; }
 
+    public ICollection<AlarmNote> Notes { get; private set; } = new List<AlarmNote>();
     public static Alarm Create(
         AlarmType alarmType,
         AlarmSeverity severity,
@@ -90,4 +91,5 @@ public class Alarm : BaseEntity
         Status = AlarmStatus.Closed;
         EndedAt = endedAt ?? DateTime.UtcNow;
     }
+
 }

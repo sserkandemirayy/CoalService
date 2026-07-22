@@ -1,11 +1,18 @@
-﻿using Domain.Entities;
-using Application.Common.Extensions;
+﻿using Application.Common.Extensions;
+using Domain.Entities;
 
 namespace Application.DTOs.Users;
 
-public record CompanySummaryDto(Guid Id, string Name);
+public record CompanySummaryDto(
+    Guid Id,
+    string Name,
+    string UserCode);
 
-public record BranchSummaryDto(Guid Id, string Name, Guid CompanyId, string CompanyName);
+public record BranchSummaryDto(
+    Guid Id,
+    string Name,
+    Guid CompanyId,
+    string CompanyName);
 
 public record UserDetailedDto(
     Guid Id,
@@ -23,35 +30,38 @@ public record UserDetailedDto(
     Guid? UserTypeId,
     string? UserTypeCode,
     string? UserTypeName,
-
     Guid? SpecializationId,
     string? SpecializationCode,
-    string? SpecializationName,    
- 
+    string? SpecializationName,
     IEnumerable<CompanySummaryDto>? Companies = null,
     IEnumerable<BranchSummaryDto>? Branches = null,
-    IEnumerable<string>? Permissions = null
-)
+    IEnumerable<string>? Permissions = null)
 {
-    public static UserDetailedDto FromEntity(User user, bool canViewPII)
+    public static UserDetailedDto FromEntity(
+        User user,
+        bool canViewPII)
     {
-        var (phone, address, redacted) = MaskingExtensions.ApplyPrivacy(user, canViewPII);
+        var (phone, address, redacted) =
+            MaskingExtensions.ApplyPrivacy(user, canViewPII);
 
-        var companies = user.UserCompanies?
-            .Select(uc => new CompanySummaryDto(uc.Company.Id, uc.Company.Name))
-            .ToList() ?? new List<CompanySummaryDto>();
+        var companies = user.UserCompanies
+            .Where(uc => uc.DeletedAt == null)
+            .Select(uc => new CompanySummaryDto(
+                uc.Company.Id,
+                uc.Company.Name,
+                uc.UserCode))
+            .ToList();
 
-        var branches = user.UserBranches?
-        .Where(ub => ub.DeletedAt == null)
-        .Select(ub => new BranchSummaryDto(
-            ub.Branch.Id,
-            ub.Branch.Name,
-            ub.Branch.CompanyId,
-            ub.Branch.Company.Name
-        ))
-        .ToList() ?? new List<BranchSummaryDto>();
+        var branches = user.UserBranches
+            .Where(ub => ub.DeletedAt == null)
+            .Select(ub => new BranchSummaryDto(
+                ub.Branch.Id,
+                ub.Branch.Name,
+                ub.Branch.CompanyId,
+                ub.Branch.Company.Name))
+            .ToList();
 
-        return new(
+        return new UserDetailedDto(
             user.Id,
             user.Email,
             user.FirstName,
@@ -62,20 +72,19 @@ public record UserDetailedDto(
             address,
             user.IsActive,
             user.LastLoginAt,
-            user.UserRoles.Select(ur => ur.Role.Name),
+            user.UserRoles
+                .Where(ur => ur.DeletedAt == null)
+                .Select(ur => ur.Role.Name),
             redacted,
             user.UserTypeId,
             user.UserType?.Code,
             user.UserType?.Name,
-
-            user.SpecializationId,  
+            user.SpecializationId,
             user.Specialization?.Code,
-            user.Specialization?.Name,                 
-             
+            user.Specialization?.Name,
             companies,
             branches,
-            null            
-        );
+            null);
     }
 }
 
@@ -85,16 +94,17 @@ public record UserSpecializationDto(
     string Name,
     string? Description,
     Guid UserTypeId,
-    string UserTypeName
-)
+    string UserTypeName)
 {
-    public static UserSpecializationDto FromEntity(UserSpecialization x)
-        => new(
-            x.Id,
-            x.Code,
-            x.Name,
-            x.Description,
-            x.UserTypeId,
-            x.UserType.Name ?? ""
-        );
+    public static UserSpecializationDto FromEntity(
+        UserSpecialization specialization)
+    {
+        return new UserSpecializationDto(
+            specialization.Id,
+            specialization.Code,
+            specialization.Name,
+            specialization.Description,
+            specialization.UserTypeId,
+            specialization.UserType.Name ?? string.Empty);
+    }
 }

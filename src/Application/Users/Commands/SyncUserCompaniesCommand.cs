@@ -11,36 +11,65 @@ public record SyncUserCompaniesCommand(
     Guid PerformedByUserId
 ) : IRequest<Result<Unit>>;
 
-public class SyncUserCompaniesHandler : IRequestHandler<SyncUserCompaniesCommand, Result<Unit>>
+public class SyncUserCompaniesHandler
+    : IRequestHandler<SyncUserCompaniesCommand, Result<Unit>>
 {
     private readonly IUserCompanyRepository _repo;
     private readonly IUnitOfWork _uow;
 
-    public SyncUserCompaniesHandler(IUserCompanyRepository repo, IUnitOfWork uow)
+    public SyncUserCompaniesHandler(
+        IUserCompanyRepository repo,
+        IUnitOfWork uow)
     {
         _repo = repo;
         _uow = uow;
     }
 
-    public async Task<Result<Unit>> Handle(SyncUserCompaniesCommand req, CancellationToken ct)
+    public async Task<Result<Unit>> Handle(
+        SyncUserCompaniesCommand req,
+        CancellationToken ct)
     {
-        // mevcut ilişkiler
-        var current = (await _repo.GetCompaniesByUserIdAsync(req.UserId, ct))
+        var current = (await _repo.GetCompaniesByUserIdAsync(
+                req.UserId,
+                ct))
             .Select(x => x.Id)
             .ToList();
 
-        // Eklenmesi gerekenler
-        var toAdd = req.Add.Except(current).ToList();
-        // Silinmesi gerekenler
-        var toRemove = req.Remove.Intersect(current).ToList();
+        var toAdd = req.Add
+            .Distinct()
+            .Except(current)
+            .ToList();
+
+        var toRemove = req.Remove
+            .Distinct()
+            .Intersect(current)
+            .ToList();
 
         foreach (var companyId in toAdd)
-            await _repo.AddOrReactivateAsync(req.UserId, companyId, ct);
+        {
+            var userCode = await _repo.AddOrReactivateAsync(
+                req.UserId,
+                companyId,
+                ct);
+
+            if (string.IsNullOrWhiteSpace(userCode))
+            {
+                return Result<Unit>.Failure(
+                    $"User could not be assigned to company {companyId}");
+            }
+        }
 
         foreach (var companyId in toRemove)
-            await _repo.RemoveAsync(req.UserId, companyId, req.PerformedByUserId, ct);
+        {
+            await _repo.RemoveAsync(
+                req.UserId,
+                companyId,
+                req.PerformedByUserId,
+                ct);
+        }
 
         await _uow.SaveChangesAsync(ct);
+
         return Result<Unit>.Success(Unit.Value);
     }
 }

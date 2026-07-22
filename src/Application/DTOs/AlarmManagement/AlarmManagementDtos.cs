@@ -18,3 +18,12 @@ public sealed record AlarmDto(
     string? Description,
     string? DataJson
 );
+
+public sealed record AlarmNoteDto(
+    Guid Id,
+    Guid AlarmId,
+    Guid UserId,
+    string UserName,
+    string Note,
+    DateTime CreatedAt
+);

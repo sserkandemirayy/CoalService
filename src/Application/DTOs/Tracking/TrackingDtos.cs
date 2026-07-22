@@ -1,9 +1,18 @@
-﻿namespace Application.DTOs.Tracking;
+﻿using Domain.Enums;
+
+namespace Application.DTOs.Tracking;
 
 public sealed record CurrentLocationDto(
     Guid Id,
     Guid TagId,
+    string TagExternalId,
+    string TagCode,
+    string TagType,
     Guid? UserId,
+    string? UserFullName,
+    string? UserIdentifier,
+    Guid? FloorMapId,
+    Guid? FloorMapZoneId,
     decimal X,
     decimal Y,
     decimal Z,
@@ -32,4 +41,3 @@ public sealed record TrackingDashboardDto(
     int OfflineAnchors,
     int ErrorAnchors
 );
-

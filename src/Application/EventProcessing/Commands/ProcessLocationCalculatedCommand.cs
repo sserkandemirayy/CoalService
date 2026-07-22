@@ -1,7 +1,9 @@
 using Application.Common.Maps;
 using Application.Common.Models;
 using Application.Common.Realtime;
+using Application.Common.Mappings;
 using Application.DTOs.EventProcessing;
+using Application.DTOs.Tracking;
 using Domain.Abstractions;
 using Domain.Entities;
 using MediatR;
@@ -172,30 +174,45 @@ public sealed class ProcessLocationCalculatedCommandHandler : IRequestHandler<Pr
 
         if (isCurrentProjectionUpdated)
         {
+            var assignedUser = activeAssignment?.User;
+
+            var currentLocationPayload = new CurrentLocationDto(
+                currentLocation.Id,
+                tag.Id,
+                tag.ExternalId,
+                tag.Code,
+                tag.TagType.ToString(),
+                assignedUser?.Id,
+                assignedUser.GetFullName(),
+                assignedUser?.Identifier,
+                currentLocation.FloorMapId,
+                currentLocation.FloorMapZoneId,
+                currentLocation.X,
+                currentLocation.Y,
+                currentLocation.Z,
+                currentLocation.Accuracy,
+                currentLocation.Confidence,
+                currentLocation.LastEventAt,
+                currentLocation.LastRawEventId,
+                currentLocation.LastKnownAnchorCount);
+
             await _realtimeNotifier.LocationUpdatedAsync(
-                new LocationUpdatedRealtimeDto(
-                    tag.Id,
-                    tag.ExternalId,
-                    tag.Code,
-                    activeAssignment?.UserId,
-                    floorMapId,
-                    floorMapZoneId,
-                    mapX,
-                    mapY,
-                    mapZ,
-                    request.Payload.Accuracy,
-                    request.Payload.Confidence,
-                    eventAt,
-                    anchorCount),
+                currentLocationPayload,
                 ct);
 
+            var tagStatusPayload = new TagStatusChangedRealtimeDto(
+                tag.Id,
+                tag.ExternalId,
+                tag.Code,
+                tag.TagType.ToString(),
+                assignedUser?.Id,
+                assignedUser.GetFullName(),
+                assignedUser?.Identifier,
+                tag.Status.ToString(),
+                eventAt);
+
             await _realtimeNotifier.TagStatusChangedAsync(
-                new TagStatusChangedRealtimeDto(
-                    tag.Id,
-                    tag.ExternalId,
-                    tag.Code,
-                    tag.Status.ToString(),
-                    eventAt),
+                tagStatusPayload,
                 ct);
         }
 

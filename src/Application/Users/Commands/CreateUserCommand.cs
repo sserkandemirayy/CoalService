@@ -4,7 +4,6 @@ using Domain.Constants;
 using Domain.Entities;
 using FluentValidation;
 using MediatR;
-using System.Reflection;
 
 namespace Application.Users.Commands;
 
@@ -13,6 +12,7 @@ public record CreateUserCommand(
     string FirstName,
     string LastName,
     Guid UserTypeId,
+    Guid CompanyId,
     string? Phone,
     string? Address,
     string? NationalId,
@@ -22,25 +22,37 @@ public record CreateUserCommand(
     Guid PerformedByUserId
 ) : IRequest<Result<Guid>>;
 
-
-
 public class CreateUserValidator : AbstractValidator<CreateUserCommand>
 {
     public CreateUserValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress();
-        RuleFor(x => x.FirstName).NotEmpty();
-        RuleFor(x => x.LastName).NotEmpty();
-        RuleFor(x => x.UserTypeId).NotEmpty();
+        RuleFor(x => x.Email)
+            .NotEmpty()
+            .EmailAddress();
+
+        RuleFor(x => x.FirstName)
+            .NotEmpty();
+
+        RuleFor(x => x.LastName)
+            .NotEmpty();
+
+        RuleFor(x => x.UserTypeId)
+            .NotEmpty();
+
+        RuleFor(x => x.CompanyId)
+            .NotEmpty();
     }
 }
 
-public class CreateUserHandler : IRequestHandler<CreateUserCommand, Result<Guid>>
+public class CreateUserHandler
+    : IRequestHandler<CreateUserCommand, Result<Guid>>
 {
     private readonly IUserRepository _users;
     private readonly IUserTypeRepository _userTypes;
     private readonly IUserSpecializationRepository _specializations;
     private readonly IRoleRepository _roles;
+    private readonly ICompanyRepository _companies;
+    private readonly IUserCompanyRepository _userCompanies;
     private readonly IPasswordHasher _hasher;
     private readonly IUnitOfWork _uow;
 
@@ -49,6 +61,8 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Result<Guid>
         IUserTypeRepository userTypes,
         IUserSpecializationRepository specializations,
         IRoleRepository roles,
+        ICompanyRepository companies,
+        IUserCompanyRepository userCompanies,
         IPasswordHasher hasher,
         IUnitOfWork uow)
     {
@@ -56,85 +70,110 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, Result<Guid>
         _userTypes = userTypes;
         _specializations = specializations;
         _roles = roles;
+        _companies = companies;
+        _userCompanies = userCompanies;
         _hasher = hasher;
         _uow = uow;
     }
 
-    public async Task<Result<Guid>> Handle(CreateUserCommand req, CancellationToken ct)
+    public async Task<Result<Guid>> Handle(
+        CreateUserCommand req,
+        CancellationToken ct)
     {
-        // Email kontrolü
-        var existing = await _users.FindByEmailAsync(req.Email, ct);
+        var email = req.Email.Trim().ToLowerInvariant();
+
+        var existing = await _users.FindByEmailAsync(email, ct);
+
         if (existing is not null)
             return Result<Guid>.Failure("Email already exists");
 
-        var type = await _userTypes.GetByIdAsync(req.UserTypeId, ct);
-        if (type == null)
+        var type = await _userTypes.GetByIdAsync(
+            req.UserTypeId,
+            ct);
+
+        if (type is null)
             return Result<Guid>.Failure("Invalid UserTypeId");
 
-        // === Specialization kontrolü ===
+        var company = await _companies.GetByIdAsync(
+            req.CompanyId,
+            ct);
+
+        if (company is null)
+            return Result<Guid>.Failure(
+                "Company not found or you do not have access to it");
+
         if (req.UserSpecializationId.HasValue)
         {
-            var spec = await _specializations.GetByIdAsync(req.UserSpecializationId.Value, ct);
-            if (spec == null)
-                return Result<Guid>.Failure("Specialization not found");
+            var specialization =
+                await _specializations.GetByIdAsync(
+                    req.UserSpecializationId.Value,
+                    ct);
 
-            if (spec.UserTypeId != req.UserTypeId)
-                return Result<Guid>.Failure("Specialization does not belong to selected UserType");
+            if (specialization is null)
+            {
+                return Result<Guid>.Failure(
+                    "Specialization not found");
+            }
+
+            if (specialization.UserTypeId != req.UserTypeId)
+            {
+                return Result<Guid>.Failure(
+                    "Specialization does not belong to selected UserType");
+            }
         }
 
-        // === Þifre atama (þimdilik sabit 123456) ===
-        var password = "123456";
+        var defaultRole = await _roles.FindByNameAsync(
+            RtlsRoleNames.Viewer,
+            ct);
 
-        // === Strong password generator (ileride açacaksýn) ===
-        /*
-        var password = PasswordGenerator.Generate(
-            length: 12,
-            includeUppercase: true,
-            includeLowercase: true,
-            includeDigits: true,
-            includeSymbols: true
-        );
-        */
+        if (defaultRole is null)
+        {
+            return Result<Guid>.Failure(
+                $"Default role '{RtlsRoleNames.Viewer}' is not configured");
+        }
+
+        const string password = "123456";
 
         var user = User.Create(
-            req.Email,
+            email,
             _hasher.Hash(password),
-            req.FirstName,
-            req.LastName,
-            req.UserTypeId
-        );
+            req.FirstName.Trim(),
+            req.LastName.Trim(),
+            req.UserTypeId);
 
-        // PII update
+        user.CreatedBy = req.PerformedByUserId;
+
         user.UpdateProfile(
-            req.FirstName,
-            req.LastName,
-            req.Phone ?? "",
-            req.Address ?? "",
-            req.NationalId ?? "",
-            req.Gender ?? ""
-        );
+            req.FirstName.Trim(),
+            req.LastName.Trim(),
+            req.Phone ?? string.Empty,
+            req.Address ?? string.Empty,
+            req.NationalId ?? string.Empty,
+            req.Gender ?? string.Empty);
 
-        if (req.BirthDate.HasValue)
-        {
-            var birthProp = typeof(User).GetProperty("BirthDate",
-               BindingFlags.Instance |
-               BindingFlags.NonPublic |
-               BindingFlags.Public);
-
-            birthProp?.SetValue(user, req.BirthDate.Value);
-        }
+        user.SetBirthDate(req.BirthDate);
 
         if (req.UserSpecializationId.HasValue)
             user.SetSpecialization(req.UserSpecializationId.Value);
 
         await _users.AddAsync(user, ct);
 
-        // All new RTLS users start as viewer. Elevated operational roles are assigned explicitly.
-        var role = await _roles.FindByNameAsync(RtlsRoleNames.Viewer, ct);
-        if (role is null)
-            return Result<Guid>.Failure($"Default role '{RtlsRoleNames.Viewer}' is not configured");
+        var userCode = await _userCompanies.AddOrReactivateAsync(
+            user.Id,
+            req.CompanyId,
+            ct);
 
-        await _users.AssignRoleAsync(user, role, ct);
+        if (string.IsNullOrWhiteSpace(userCode))
+        {
+            return Result<Guid>.Failure(
+                "User code could not be generated for the selected company");
+        }
+
+        await _users.AssignRoleAsync(
+            user,
+            defaultRole,
+            ct);
+
         await _uow.SaveChangesAsync(ct);
 
         return Result<Guid>.Success(user.Id);

@@ -138,6 +138,8 @@ builder.Services.AddScoped<INotificationTargetResolver, NotificationTargetResolv
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<INotificationSignalRNotifier, NotificationSignalRNotifier>();
 
+builder.Services.AddScoped<IAlarmNoteRepository, AlarmNoteRepository>();
+
 // MediatR - Validation
 builder.Services.AddMediatR(cfg =>
 {

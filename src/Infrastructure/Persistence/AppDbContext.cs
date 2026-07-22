@@ -100,6 +100,10 @@ public class AppDbContext : DbContext
     public DbSet<NotificationRecipient> NotificationRecipients => Set<NotificationRecipient>();
     public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
 
+    public DbSet<CompanyUserCounter> CompanyUserCounters => Set<CompanyUserCounter>();
+
+    public DbSet<AlarmNote> AlarmNotes => Set<AlarmNote>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
 
@@ -247,28 +251,63 @@ public class AppDbContext : DbContext
             entity.Property<string?>("LogoUrl").HasMaxLength(300).IsRequired(false);
         });
 
+        modelBuilder.Entity<CompanyUserCounter>(entity =>
+        {
+            entity.ToTable("CompanyUserCounters");
+
+            entity.HasKey(x => x.CompanyId);
+
+            entity.Property(x => x.CompanyId)
+                .ValueGeneratedNever();
+
+            entity.Property(x => x.LastValue)
+                .IsRequired();
+
+            entity.HasOne(x => x.Company)
+                .WithOne()
+                .HasForeignKey<CompanyUserCounter>(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // ==== UserCompany ==== (N-N iliþki)
         modelBuilder.Entity<UserCompany>(entity =>
         {
             entity.HasKey(uc => uc.Id);
 
-            entity.HasIndex(uc => new { uc.UserId, uc.CompanyId })
-               .IsUnique();      
+            entity.Property(uc => uc.UserCode)
+                .IsRequired()
+                .HasMaxLength(8)
+                .IsUnicode(false);
+
+            entity.HasIndex(uc => new
+            {
+                uc.UserId,
+                uc.CompanyId
+            })
+            .IsUnique();
+
+            entity.HasIndex(uc => new
+            {
+                uc.CompanyId,
+                uc.UserCode
+            })
+            .IsUnique();
+
             entity.HasOne(x => x.User)
-                  .WithMany(u => u.UserCompanies)
-                  .HasForeignKey(x => x.UserId)
-                  .OnDelete(DeleteBehavior.Cascade);
+                .WithMany(u => u.UserCompanies)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Company)
-                  .WithMany(c => c.UserCompanies)
-                  .HasForeignKey(x => x.CompanyId)
-                  .OnDelete(DeleteBehavior.Cascade);
+                .WithMany(c => c.UserCompanies)
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasQueryFilter(x => x.DeletedAt == null);
         });
 
-              
-        
+
+
         // ==== Branch ====
         modelBuilder.Entity<Branch>(entity =>
         {
@@ -705,6 +744,34 @@ public class AppDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(x => x.UserId)
                   .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasMany(x => x.Notes)
+              .WithOne(x => x.Alarm)
+              .HasForeignKey(x => x.AlarmId)
+              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AlarmNote>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Note)
+                  .IsRequired()
+                  .HasMaxLength(4000);
+
+            entity.HasIndex(x => x.AlarmId);
+
+            entity.HasIndex(x => x.CreatedAt);
+
+            entity.HasOne(x => x.Alarm)
+                  .WithMany(x => x.Notes)
+                  .HasForeignKey(x => x.AlarmId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.User)
+                  .WithMany()
+                  .HasForeignKey(x => x.UserId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<AnchorHealthEvent>(entity =>

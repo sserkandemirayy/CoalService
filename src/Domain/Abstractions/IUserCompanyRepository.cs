@@ -2,7 +2,9 @@
 
 public interface IUserCompanyRepository
 {
-    Task AddOrReactivateAsync(Guid userId, Guid companyId, CancellationToken ct = default);
+    //Task AddOrReactivateAsync(Guid userId, Guid companyId, CancellationToken ct = default);
+
+    Task<string?> AddOrReactivateAsync(Guid userId, Guid companyId, CancellationToken ct = default);
 
     Task RemoveAsync(Guid userId, Guid companyId, Guid performedBy, CancellationToken ct = default);
 

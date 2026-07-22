@@ -64,6 +64,38 @@ public class RolesController : BaseController
         return Ok(RoleDto.FromEntity(role));
     }
 
+    // === Duplicate ===
+    [HttpPost("{id:guid}/duplicate")]
+    public async Task<IActionResult> DuplicateRole(
+        Guid id,
+        [FromBody] DuplicateRoleDto dto,
+        CancellationToken ct)
+    {
+        var sourceRole = await _roleRepository.GetByIdAsync(id, ct);
+
+        if (sourceRole == null)
+            return NotFound();
+
+        var existing = await _roleRepository.FindByNameAsync(dto.Name, ct);
+
+        if (existing != null)
+            return Conflict(new { error = "Role name already exists." });
+
+        var newRole = Role.Create(dto.Name, dto.Description);
+
+        await _roleRepository.AddAsync(newRole, ct);
+
+        foreach (var rolePermission in sourceRole.RolePermissions
+                     .Where(x => x.DeletedAt == null))
+        {
+            newRole.AssignPermission(rolePermission.Permission);
+        }
+
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        return Ok(RoleDto.FromEntity(newRole));
+    }
+
     // === Soft Delete ===
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteRole(Guid id)

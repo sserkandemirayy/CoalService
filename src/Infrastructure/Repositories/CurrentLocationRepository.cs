@@ -10,19 +10,37 @@ public class CurrentLocationRepository : ICurrentLocationRepository
     private readonly AppDbContext _db;
     private readonly ICurrentUserService _currentUser;
 
-    public CurrentLocationRepository(AppDbContext db, ICurrentUserService currentUser)
+    public CurrentLocationRepository(
+        AppDbContext db,
+        ICurrentUserService currentUser)
     {
         _db = db;
         _currentUser = currentUser;
     }
 
-    public async Task<CurrentLocation?> GetByTagIdAsync(Guid tagId, CancellationToken ct = default)
-        => await ApplyScope(_db.CurrentLocations).FirstOrDefaultAsync(x => x.TagId == tagId, ct);
+    public async Task<CurrentLocation?> GetByTagIdAsync(
+        Guid tagId,
+        CancellationToken ct = default)
+    {
+        return await ApplyScope(
+                _db.CurrentLocations
+                    .Include(x => x.Tag)
+                    .Include(x => x.User))
+            .FirstOrDefaultAsync(
+                x => x.TagId == tagId,
+                ct);
+    }
 
-    public async Task AddAsync(CurrentLocation currentLocation, CancellationToken ct = default)
-        => await _db.CurrentLocations.AddAsync(currentLocation, ct);
+    public async Task AddAsync(
+        CurrentLocation currentLocation,
+        CancellationToken ct = default)
+    {
+        await _db.CurrentLocations.AddAsync(currentLocation, ct);
+    }
 
-    public Task UpdateAsync(CurrentLocation currentLocation, CancellationToken ct = default)
+    public Task UpdateAsync(
+        CurrentLocation currentLocation,
+        CancellationToken ct = default)
     {
         _db.CurrentLocations.Update(currentLocation);
         return Task.CompletedTask;
@@ -33,7 +51,11 @@ public class CurrentLocationRepository : ICurrentLocationRepository
         Guid? tagId,
         CancellationToken ct = default)
     {
-        var query = ApplyScope(_db.CurrentLocations);
+        var query = ApplyScope(
+            _db.CurrentLocations
+                .AsNoTracking()
+                .Include(x => x.Tag)
+                .Include(x => x.User));
 
         if (userId.HasValue)
             query = query.Where(x => x.UserId == userId.Value);
@@ -46,9 +68,13 @@ public class CurrentLocationRepository : ICurrentLocationRepository
             .ToListAsync(ct);
     }
 
-    public IQueryable<CurrentLocation> Query() => _db.CurrentLocations.AsQueryable();
+    public IQueryable<CurrentLocation> Query()
+    {
+        return _db.CurrentLocations.AsQueryable();
+    }
 
-    private IQueryable<CurrentLocation> ApplyScope(IQueryable<CurrentLocation> query)
+    private IQueryable<CurrentLocation> ApplyScope(
+        IQueryable<CurrentLocation> query)
     {
         if (HasUnrestrictedScope())
             return query;
@@ -57,16 +83,32 @@ public class CurrentLocationRepository : ICurrentLocationRepository
         var branchIds = _currentUser.GetCurrentUserBranchIds();
 
         return query.Where(x =>
-            (x.UserId.HasValue && (
-                x.User!.UserCompanies.Any(uc => companyIds.Contains(uc.CompanyId)) ||
-                x.User.UserBranches.Any(ub => branchIds.Contains(ub.BranchId)))) ||
+            (
+                x.UserId.HasValue &&
+                (
+                    x.User!.UserCompanies.Any(uc =>
+                        companyIds.Contains(uc.CompanyId)) ||
+                    x.User.UserBranches.Any(ub =>
+                        branchIds.Contains(ub.BranchId))
+                )
+            )
+            ||
             x.Tag.Assignments.Any(a =>
                 a.UnassignedAt == null &&
-                (a.User.UserCompanies.Any(uc => companyIds.Contains(uc.CompanyId)) ||
-                 a.User.UserBranches.Any(ub => branchIds.Contains(ub.BranchId)))));
+                (
+                    a.User.UserCompanies.Any(uc =>
+                        companyIds.Contains(uc.CompanyId)) ||
+                    a.User.UserBranches.Any(ub =>
+                        branchIds.Contains(ub.BranchId))
+                )));
     }
 
     private bool HasUnrestrictedScope()
-        => _currentUser.IsSystemUser() ||
-           _currentUser.GetRoles().Any(x => x.Equals("super_admin", StringComparison.OrdinalIgnoreCase));
+    {
+        return _currentUser.IsSystemUser() ||
+               _currentUser.GetRoles().Any(x =>
+                   x.Equals(
+                       "super_admin",
+                       StringComparison.OrdinalIgnoreCase));
+    }
 }

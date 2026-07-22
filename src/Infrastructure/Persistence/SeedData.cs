@@ -445,31 +445,88 @@ public static class SeedData
             db.SaveChanges();
             Console.WriteLine("✓ Company ve Branch kayıtları oluşturuldu.");
         }
-
         // =========================================================
         // USER-COMPANY / USER-BRANCH ASSIGNMENTS
         // =========================================================
+
         var companyEntity = db.Companies.First();
         var firstBranch = db.Branches.OrderBy(x => x.Name).First();
 
+        var existingMaximumSequence = db.UserCompanies
+            .IgnoreQueryFilters()
+            .Where(x => x.CompanyId == companyEntity.Id)
+            .Select(x => x.UserCode)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .AsEnumerable()
+            .Select(x =>
+            {
+                if (long.TryParse(x![1..], out var number))
+                    return number;
+
+                return 0L;
+            })
+            .DefaultIfEmpty(0)
+            .Max();
+
+        var sequence = existingMaximumSequence + 1;
+
         var assignableUsers = db.Users
-            .Where(u => u.Id != systemUserId && u.UserTypeId != userTypes["VISITOR"].Id)
+            .Where(u =>
+                u.Id != systemUserId &&
+                u.UserTypeId != userTypes["VISITOR"].Id)
+            .OrderBy(u => u.CreatedAt)
+            .ThenBy(u => u.Id)
             .ToList();
 
         foreach (var user in assignableUsers)
         {
-            if (!db.UserCompanies.Any(uc => uc.UserId == user.Id && uc.CompanyId == companyEntity.Id))
+            var userCompany = db.UserCompanies
+                .IgnoreQueryFilters()
+                .FirstOrDefault(x =>
+                    x.UserId == user.Id &&
+                    x.CompanyId == companyEntity.Id);
+
+            if (userCompany == null)
             {
-                db.UserCompanies.Add(UserCompany.Create(user.Id, companyEntity.Id));
+                db.UserCompanies.Add(
+                    UserCompany.Create(
+                        user.Id,
+                        companyEntity.Id,
+                        $"U{sequence:0000000}"));
+
+                sequence++;
             }
 
-            if (!db.UserBranches.Any(ub => ub.UserId == user.Id && ub.BranchId == firstBranch.Id))
+            if (!db.UserBranches.Any(x =>
+                    x.UserId == user.Id &&
+                    x.BranchId == firstBranch.Id))
             {
-                db.UserBranches.Add(UserBranch.Create(user.Id, firstBranch.Id));
+                db.UserBranches.Add(
+                    UserBranch.Create(
+                        user.Id,
+                        firstBranch.Id));
             }
         }
 
+        var lastSequence = sequence - 1;
+
+        var counter = db.CompanyUserCounters
+            .FirstOrDefault(x => x.CompanyId == companyEntity.Id);
+
+        if (counter == null)
+        {
+            db.CompanyUserCounters.Add(
+                CompanyUserCounter.Create(
+                    companyEntity.Id,
+                    lastSequence));
+        }
+        else
+        {
+            counter.EnsureAtLeast(lastSequence);
+        }
+
         db.SaveChanges();
+
         Console.WriteLine("✓ UserCompany / UserBranch atamaları yapıldı.");
 
         // =========================================================
