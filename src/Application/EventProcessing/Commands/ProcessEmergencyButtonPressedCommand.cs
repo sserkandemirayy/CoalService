@@ -6,6 +6,7 @@ using Domain.Enums;
 using MediatR;
 using Application.Common.Realtime;
 using Application.Common.Notifications;
+using Application.Common.Mappings;
 
 namespace Application.EventProcessing.Commands;
 
@@ -110,14 +111,29 @@ public sealed class ProcessEmergencyButtonPressedCommandHandler : IRequestHandle
                 alarm.StartedAt),
             ct);
 
-                await _realtimeNotifier.TagStatusChangedAsync(
-                    new TagStatusChangedRealtimeDto(
-                        tag.Id,
-                        tag.ExternalId,
-                        tag.Code,
-                        tag.Status.ToString(),
-                        eventAt),
-                    ct);
+                //await _realtimeNotifier.TagStatusChangedAsync(
+                //    new TagStatusChangedRealtimeDto(
+                //        tag.Id,
+                //        tag.ExternalId,
+                //        tag.Code,
+                //        tag.Status.ToString(),
+                //        eventAt),
+                //    ct);
+
+        var assignedUser = activeAssignment?.User;
+
+        await _realtimeNotifier.TagStatusChangedAsync(
+            new TagStatusChangedRealtimeDto(
+                tag.Id,
+                tag.ExternalId,
+                tag.Code,
+                tag.TagType.ToString(),
+                assignedUser?.Id,
+                assignedUser?.GetFullName(),
+                assignedUser?.Identifier,
+                tag.Status.ToString(),
+                eventAt),
+            ct);
 
         await _notificationService.SendToPermissionAsync(
                 "view_alarms",

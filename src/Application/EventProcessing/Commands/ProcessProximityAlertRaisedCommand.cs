@@ -1,10 +1,11 @@
-﻿using Application.Common.Models;
+﻿using Application.Common.Mappings;
+using Application.Common.Models;
+using Application.Common.Realtime;
 using Application.DTOs.EventProcessing;
 using Domain.Abstractions;
 using Domain.Entities;
 using Domain.Enums;
 using MediatR;
-using Application.Common.Realtime;
 
 namespace Application.EventProcessing.Commands;
 
@@ -18,12 +19,14 @@ public sealed class ProcessProximityAlertRaisedCommandHandler : IRequestHandler<
     private readonly IAlarmRepository _alarmRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IRealtimeNotifier _realtimeNotifier;
+    private readonly ITagAssignmentRepository _tagAssignmentRepository;
 
     public ProcessProximityAlertRaisedCommandHandler(
         IRawEventRepository rawEventRepository,
         ITagRepository tagRepository,
         IProximityEventRepository proximityEventRepository,
         IAlarmRepository alarmRepository,
+        ITagAssignmentRepository tagAssignmentRepository,
         IUnitOfWork unitOfWork,
         IRealtimeNotifier realtimeNotifier)
     {
@@ -31,6 +34,7 @@ public sealed class ProcessProximityAlertRaisedCommandHandler : IRequestHandler<
         _tagRepository = tagRepository;
         _proximityEventRepository = proximityEventRepository;
         _alarmRepository = alarmRepository;
+        _tagAssignmentRepository = tagAssignmentRepository;
         _unitOfWork = unitOfWork;
         _realtimeNotifier = realtimeNotifier;
     }
@@ -109,6 +113,11 @@ public sealed class ProcessProximityAlertRaisedCommandHandler : IRequestHandler<
         rawEvent.MarkProcessed();
         await _unitOfWork.SaveChangesAsync(ct);
 
+        var activeAssignment = await _tagAssignmentRepository.GetActiveByTagIdAsync(tag.Id, ct);
+        var peerAssignment = await _tagAssignmentRepository.GetActiveByTagIdAsync(peerTag.Id, ct);
+        var assignedUser = activeAssignment?.User;
+        var peerUser = peerAssignment?.User;
+
         await _realtimeNotifier.AlarmRaisedAsync(
                 new AlarmRaisedRealtimeDto(
                     alarm.Id,
@@ -126,20 +135,46 @@ public sealed class ProcessProximityAlertRaisedCommandHandler : IRequestHandler<
                     alarm.StartedAt),
                 ct);
 
+        //await _realtimeNotifier.TagStatusChangedAsync(
+        //    new TagStatusChangedRealtimeDto(
+        //        tag.Id,
+        //        tag.ExternalId,
+        //        tag.Code,
+        //        tag.Status.ToString(),
+        //        eventAt),
+        //    ct);
+
         await _realtimeNotifier.TagStatusChangedAsync(
             new TagStatusChangedRealtimeDto(
                 tag.Id,
                 tag.ExternalId,
                 tag.Code,
+                tag.TagType.ToString(),
+                assignedUser?.Id,
+                assignedUser?.GetFullName(),
+                assignedUser?.Identifier,
                 tag.Status.ToString(),
                 eventAt),
             ct);
+
+        //await _realtimeNotifier.TagStatusChangedAsync(
+        //    new TagStatusChangedRealtimeDto(
+        //        peerTag.Id,
+        //        peerTag.ExternalId,
+        //        peerTag.Code,
+        //        peerTag.Status.ToString(),
+        //        eventAt),
+        //    ct);
 
         await _realtimeNotifier.TagStatusChangedAsync(
             new TagStatusChangedRealtimeDto(
                 peerTag.Id,
                 peerTag.ExternalId,
                 peerTag.Code,
+                peerTag.TagType.ToString(),
+                peerUser?.Id,
+                peerUser?.GetFullName(),
+                peerUser?.Identifier,
                 peerTag.Status.ToString(),
                 eventAt),
             ct);
