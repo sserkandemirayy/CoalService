@@ -619,5 +619,717 @@ olarak çalışır.
 Sadece gerçek harita ölçüsü farklıysa Calibration değiştirilir. Bunun dışında frontend veya event mantığında herhangi bir değişiklik yapılmasına gerek yoktur.
 
 
+# System Health
 
+System Health modülü, API'nin çalıştığı ortamın temel sağlık durumunu takip etmek için kullanılır.
+
+Şu an sistem 3 ana başlığı takip eder:
+
+- API Health
+- Database Health
+- Server Health
+
+Amaç frontend veya yönetim ekranının sistemin çalışır durumda olup olmadığını tek noktadan görebilmesidir.
+
+---
+
+# 1. API Health
+
+API Health, Coal Core API'nin genel çalışma durumunu gösterir.
+
+Takip edilen temel bilgiler:
+
+- API ayakta mı
+- API uptime
+- Son restart zamanı
+- Process memory kullanımı
+- CPU kullanımı
+- Toplam request sayısı
+- Hatalı request sayısı
+- Ortalama response süresi
+- Son 5 dakikadaki 5xx hata sayısı
+- Son 15 dakikadaki 5xx hata sayısı
+
+## Mantık
+
+Her HTTP request'i `SystemMetricsMiddleware` üzerinden geçer.
+
+Middleware request başlangıç ve bitiş zamanını ölçer.
+
+```text
+Request gelir
+      ↓
+SystemMetricsMiddleware
+      ↓
+Request süresi ölçülür
+      ↓
+HTTP status code kontrol edilir
+      ↓
+Metrics Store güncellenir
+```
+
+Örneğin API aşağıdaki gibi bilgi üretebilir:
+
+```json
+{
+  "status": "Healthy",
+  "uptimeSeconds": 86400,
+  "startedAt": "2026-08-16T10:00:00Z",
+  "processMemoryMb": 320.45,
+  "cpuUsagePercent": 12.6,
+  "totalRequests": 125430,
+  "failedRequests": 214,
+  "averageResponseTimeMs": 42.8,
+  "serverErrorsLast5Minutes": 2,
+  "serverErrorsLast15Minutes": 7
+}
+```
+
+Buradaki `5xx` değerleri API tarafında oluşan server hatalarını ifade eder.
+
+---
+
+# 2. Database Health
+
+Database Health, PostgreSQL veritabanına erişimin sağlıklı olup olmadığını kontrol eder.
+
+Kontrol edilen bilgiler:
+
+- PostgreSQL bağlantısı başarılı mı
+- Database response süresi
+- Son başarılı kontrol zamanı
+- Son hata zamanı
+- Son hata mesajı
+- Aktif database connection bilgisi alınabiliyorsa connection durumu
+
+## Mantık
+
+Sistem belirli aralıklarla PostgreSQL'e basit bir sorgu gönderir.
+
+Örneğin mantıksal olarak:
+
+```sql
+SELECT 1;
+```
+
+Kontrol akışı:
+
+```text
+API
+ ↓
+PostgreSQL'e test sorgusu
+ ↓
+Başarılı mı?
+ ↓
+EVET
+Status = Healthy
+
+HAYIR
+Status = Unhealthy
+```
+
+Aynı zamanda sorgunun ne kadar sürede cevap verdiği ölçülür.
+
+Örnek response:
+
+```json
+{
+  "status": "Healthy",
+  "isConnected": true,
+  "responseTimeMs": 8.4,
+  "lastSuccessfulCheckAt": "2026-08-17T07:40:00Z",
+  "lastFailedCheckAt": null,
+  "lastError": null
+}
+```
+
+Database'e ulaşılamazsa örneğin:
+
+```json
+{
+  "status": "Unhealthy",
+  "isConnected": false,
+  "responseTimeMs": null,
+  "lastSuccessfulCheckAt": "2026-08-17T07:39:30Z",
+  "lastFailedCheckAt": "2026-08-17T07:40:00Z",
+  "lastError": "Database connection failed."
+}
+```
+
+---
+
+# 3. Server Health
+
+Server Health, API'nin çalıştığı makine veya container üzerindeki temel kaynak kullanımını gösterir.
+
+Takip edilen bilgiler:
+
+- CPU kullanımı
+- RAM kullanımı
+- Process RAM kullanımı
+- Disk kullanımı
+- Server uptime
+- Process uptime
+
+API Windows, Linux veya Docker üzerinde çalışabilir.
+
+.NET tarafından erişilebilen bilgiler çalışma ortamına göre alınır.
+
+Örnek response:
+
+```json
+{
+  "status": "Healthy",
+  "cpuUsagePercent": 18.2,
+  "memoryUsagePercent": 61.4,
+  "processMemoryMb": 325.7,
+  "diskUsagePercent": 47.8,
+  "processUptimeSeconds": 86400
+}
+```
+
+---
+
+# System Health Genel Mantık
+
+```text
+Frontend
+   ↓
+System Health API
+   ↓
+┌─────────────────────┐
+│ API Health          │
+│ Database Health     │
+│ Server Health       │
+└─────────────────────┘
+   ↓
+Tek response
+```
+
+Frontend bu bilgileri kullanarak örneğin şu şekilde gösterebilir:
+
+```text
+API       → Healthy
+Database  → Healthy
+Server    → Healthy
+```
+
+Sorun oluşursa:
+
+```text
+API       → Healthy
+Database  → Unhealthy
+Server    → Warning
+```
+
+Bu modül operasyon ekibinin API, database veya server kaynaklı problemleri hızlı şekilde ayırabilmesini sağlar.
+
+---
+
+# Equipment Management
+
+Equipment Management modülü, madende veya işletme sahasında bulunan fiziksel ekipmanların yönetilmesi için kullanılır.
+
+Örnek ekipmanlar:
+
+- Yangın tüpü
+- İlk yardım kiti
+- Sedye
+- Oksijen tüpü
+- Acil durum telefonu
+- Gaz dedektörü
+- Kurtarma ekipmanı
+- Elektrik panosu
+- Bakım ekipmanı
+
+Sistem sabit ekipman tipleri kullanmaz.
+
+Önce kategori oluşturulur, daha sonra ekipmanlar bu kategoriye bağlanır.
+
+Genel yapı:
+
+```text
+Equipment Category
+        ↓
+Equipment
+        ↓
+Equipment Inspection
+```
+
+---
+
+# 1. Equipment Category
+
+Equipment Category, ekipmanın türünü tanımlar.
+
+Örneğin:
+
+```text
+Yangın Tüpü
+İlk Yardım Kiti
+Sedye
+Gaz Dedektörü
+```
+
+Kategori üzerinde ayrıca:
+
+- Icon
+- Haritada göster / gösterme
+- Active / Inactive
+
+bilgileri bulunur.
+
+## Kategori Oluşturma
+
+**POST** `/api/Equipment/categories`
+
+### Request
+
+```json
+{
+  "companyId": "company-guid",
+  "code": "FIRE_EXTINGUISHER",
+  "name": "Yangın Tüpü",
+  "description": "Yangın söndürme tüpleri",
+  "icon": "fire-extinguisher",
+  "showOnMap": true
+}
+```
+
+### Response
+
+```json
+{
+  "id": "category-guid"
+}
+```
+
+`icon`, frontend'in kategori için kullanacağı icon bilgisidir.
+
+`showOnMap`, bu kategoriye bağlı ekipmanların haritada gösterilip gösterilmeyeceğini belirler.
+
+Örneğin:
+
+```json
+{
+  "showOnMap": true
+}
+```
+
+ise ekipman harita endpoint'inde dönebilir.
+
+```json
+{
+  "showOnMap": false
+}
+```
+
+ise o kategoriye ait ekipman kayıtları sistemde kalır fakat haritada gösterilmez.
+
+## Kategorileri Listeleme
+
+**GET** `/api/Equipment/categories`
+
+Filtre örneği:
+
+```text
+GET /api/Equipment/categories?companyId={companyId}&isActive=true
+```
+
+---
+
+# 2. Equipment
+
+Equipment, sahadaki gerçek fiziksel ekipman kaydıdır.
+
+Örneğin:
+
+```text
+Kategori : Yangın Tüpü
+Kod      : YT-0001
+Ad        : Galeri A Yangın Tüpü
+```
+
+Bir ekipman şu bilgilerle tutulabilir:
+
+- Company
+- Branch
+- Category
+- Code
+- Name
+- Serial Number
+- Manufacturer
+- Model
+- Status
+- Floor Map
+- X, Y, Z
+- Kurulum tarihi
+- Son kullanma tarihi
+- Son kontrol tarihi
+- Sonraki kontrol tarihi
+- Notes
+- Metadata
+
+## Equipment Oluşturma
+
+**POST** `/api/Equipment`
+
+### Request
+
+```json
+{
+  "companyId": "company-guid",
+  "branchId": "branch-guid",
+  "categoryId": "category-guid",
+
+  "code": "YT-0001",
+  "name": "Galeri A Yangın Tüpü",
+
+  "serialNumber": "SN-2026-00001",
+  "manufacturer": "ABC Yangın",
+  "model": "6KG-KKT",
+
+  "status": "Active",
+
+  "floorMapId": "map-guid",
+  "x": 32.5,
+  "y": 18.75,
+  "z": 0,
+
+  "installedAt": "2026-01-15T00:00:00Z",
+  "expirationDate": "2028-01-15T00:00:00Z",
+  "nextInspectionAt": "2026-09-01T00:00:00Z",
+
+  "notes": "Galeri giriş kapısının sağ tarafında.",
+
+  "metadataJson": "{\"capacityKg\":6,\"extinguisherType\":\"DryChemical\"}"
+}
+```
+
+### Response
+
+```json
+{
+  "id": "equipment-guid"
+}
+```
+
+---
+
+# 3. Equipment Status
+
+Equipment için kullanılabilecek durumlar:
+
+| Status | Açıklama |
+|---|---|
+| Active | Ekipman aktif ve kullanılabilir |
+| Maintenance | Bakımda |
+| OutOfService | Kullanım dışı |
+| Missing | Yerinde bulunamadı |
+| Expired | Kullanım veya geçerlilik süresi dolmuş |
+| Retired | Kalıcı olarak kullanım dışı bırakılmış |
+
+`IsActive` ile `Status` aynı şey değildir.
+
+Örneğin:
+
+```text
+IsActive = true
+Status = Maintenance
+```
+
+olabilir.
+
+Bu durumda kayıt sistemde aktiftir fakat ekipman bakım durumundadır.
+
+---
+
+# 4. Equipment Listeleme
+
+**GET** `/api/Equipment`
+
+Örnek:
+
+```text
+GET /api/Equipment?page=1&pageSize=20
+```
+
+Filtreler birlikte kullanılabilir.
+
+### Company
+
+```text
+GET /api/Equipment?companyId={companyId}
+```
+
+### Branch
+
+```text
+GET /api/Equipment?branchId={branchId}
+```
+
+### Category
+
+```text
+GET /api/Equipment?categoryId={categoryId}
+```
+
+### Status
+
+```text
+GET /api/Equipment?status=Active
+```
+
+### Map
+
+```text
+GET /api/Equipment?floorMapId={floorMapId}
+```
+
+### Search
+
+```text
+GET /api/Equipment?search=yangın
+```
+
+Search alanı ekipmanın kodu, adı, seri numarası, üreticisi veya modeli üzerinden arama yapmak için kullanılabilir.
+
+---
+
+# 5. Equipment ve Harita
+
+Equipment bir FloorMap üzerine yerleştirilebilir.
+
+Bunun için:
+
+```text
+FloorMapId
+X
+Y
+Z
+```
+
+bilgileri kullanılır.
+
+Mantık:
+
+```text
+FloorMapId yok
+    ↓
+Equipment haritaya bağlı değildir.
+
+FloorMapId var
+    ↓
+X ve Y zorunludur.
+
+Z opsiyoneldir.
+```
+
+Örneğin:
+
+```json
+{
+  "floorMapId": "map-guid",
+  "x": 32.5,
+  "y": 18.75,
+  "z": 0
+}
+```
+
+Bu ekipmanın ilgili haritada:
+
+```text
+X = 32.5
+Y = 18.75
+Z = 0
+```
+
+noktasında olduğunu belirtir.
+
+---
+
+# 6. Haritada Gösterilecek Equipment Listesi
+
+Frontend'in harita üzerinde ekipman göstermek için kullanacağı endpoint:
+
+**GET** `/api/Equipment/map/{floorMapId}`
+
+### Response
+
+```json
+[
+  {
+    "id": "equipment-guid",
+    "categoryId": "category-guid",
+    "categoryCode": "FIRE_EXTINGUISHER",
+    "categoryName": "Yangın Tüpü",
+    "icon": "fire-extinguisher",
+    "code": "YT-0001",
+    "name": "Galeri A Yangın Tüpü",
+    "status": "Active",
+    "x": 32.5,
+    "y": 18.75,
+    "z": 0
+  }
+]
+```
+
+Bir equipment'ın bu response içinde dönmesi için:
+
+```text
+Equipment aktif olmalı
+        ↓
+Category aktif olmalı
+        ↓
+Category ShowOnMap = true olmalı
+        ↓
+FloorMapId eşleşmeli
+        ↓
+X ve Y bilgileri bulunmalı
+```
+
+Bu şartlardan biri sağlanmazsa equipment harita listesinde dönmez.
+
+Örneğin kategori:
+
+```json
+{
+  "showOnMap": false
+}
+```
+
+olarak değiştirilirse kategoriye ait ekipmanlar database'den silinmez.
+
+Sadece harita endpoint'inden çıkar.
+
+---
+
+# 7. Equipment Inspection
+
+Inspection, ekipmanın periyodik kontrol geçmişidir.
+
+Örneğin yangın tüpü kontrolünde:
+
+- Basınç kontrolü
+- Mühür kontrolü
+- Fiziksel durum
+- Son kullanma tarihi
+- Bir sonraki kontrol tarihi
+
+gibi bilgiler tutulabilir.
+
+## Inspection Ekleme
+
+**POST** `/api/Equipment/{equipmentId}/inspections`
+
+### Request
+
+```json
+{
+  "result": "Passed",
+  "inspectedAt": "2026-08-12T10:00:00Z",
+  "note": "Basınç normal. Pim ve mühür sağlam.",
+  "nextInspectionAt": "2026-11-12T10:00:00Z",
+  "dataJson": "{\"pressure\":\"normal\",\"seal\":true}"
+}
+```
+
+### Response
+
+```json
+{
+  "id": "inspection-guid"
+}
+```
+
+Inspection sonucu:
+
+| Result | Açıklama |
+|---|---|
+| Passed | Kontrol başarılı |
+| Failed | Kontrol başarısız |
+| NeedsMaintenance | Bakım gerekiyor |
+
+Inspection kaydı oluşturulduğunda equipment üzerindeki:
+
+```text
+LastInspectionAt
+NextInspectionAt
+```
+
+alanları otomatik güncellenir.
+
+---
+
+# 8. Inspection Geçmişi
+
+**GET** `/api/Equipment/{equipmentId}/inspections`
+
+### Response
+
+```json
+[
+  {
+    "id": "inspection-guid",
+    "equipmentId": "equipment-guid",
+    "inspectedByUserId": "user-guid",
+    "inspectedByFullName": "Ahmet Koç",
+    "inspectedAt": "2026-08-12T10:00:00Z",
+    "result": "Passed",
+    "note": "Basınç normal. Pim ve mühür sağlam.",
+    "nextInspectionAt": "2026-11-12T10:00:00Z",
+    "dataJson": "{\"pressure\":\"normal\",\"seal\":true}"
+  }
+]
+```
+
+Böylece ekipmanın kim tarafından, ne zaman ve hangi sonuçla kontrol edildiği geçmişe dönük olarak görülebilir.
+
+---
+
+# Equipment Kullanım Sırası
+
+1. Equipment Category oluştur.
+2. Kategori için icon belirle.
+3. Kategorinin haritada gösterilip gösterilmeyeceğini `ShowOnMap` ile belirle.
+4. Equipment oluştur.
+5. Company ve gerekirse Branch bağla.
+6. Haritada gösterilecekse FloorMap ve X/Y/Z bilgilerini gir.
+7. Periyodik kontrolleri Inspection olarak kaydet.
+8. Frontend harita için `/api/Equipment/map/{floorMapId}` endpoint'ini kullanır.
+
+---
+
+# Equipment Özet
+
+| Kavram | Açıklama |
+|---|---|
+| Equipment Category | Ekipmanın türü |
+| Icon | Frontend'de kullanılacak kategori ikonu |
+| ShowOnMap | Kategorinin haritada gösterilip gösterilmeyeceği |
+| Equipment | Sahadaki fiziksel ekipman |
+| FloorMapId | Equipment'ın bağlı olduğu harita |
+| X/Y/Z | Harita üzerindeki konumu |
+| Status | Equipment'ın operasyonel durumu |
+| ExpirationDate | Son kullanma / geçerlilik tarihi |
+| Inspection | Equipment kontrol geçmişi |
+| LastInspectionAt | Son kontrol tarihi |
+| NextInspectionAt | Bir sonraki kontrol tarihi |
+
+En basit örnek:
+
+```text
+Yangın Tüpü kategorisi
+        ↓
+ShowOnMap = true
+Icon = fire-extinguisher
+        ↓
+YT-0001 equipment
+        ↓
+FloorMap = Yeraltı Haritası
+X = 32.5
+Y = 18.75
+        ↓
+Frontend haritada yangın tüpü iconunu gösterir.
+```
 
