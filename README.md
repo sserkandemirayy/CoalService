@@ -1331,5 +1331,154 @@ X = 32.5
 Y = 18.75
         ↓
 Frontend haritada yangın tüpü iconunu gösterir.
+
+---
+
+# Tracking & Movement APIs
+
+## Movement Recording
+
+Sistem her gelen LocationCalculated eventini `LocationEvents` tablosuna ham veri olarak kaydeder.
+
+Bunun yanında `MovementRecordingPolicy` kullanılarak filtrelenmiş hareket geçmişi `MovementEvents` tablosuna yazılır.
+
+Movement kaydı aşağıdaki durumlarda oluşturulur:
+
+- FirstPoint
+- Distance (>= 0.5m)
+- Interval (5 saniye)
+- FloorMapChanged
+- ZoneChanged
+
+Böylece raporlama ve playback işlemleri milyonlarca ham location event yerine optimize edilmiş movement geçmişi üzerinden çalışır.
+
+---
+
+## Current APIs
+
+### Current Locations
+
+```
+GET /api/Tracking/current-locations
+```
+
+Aktif kullanıcı/tag konumlarını döner.
+
+---
+
+### Tag Location History
+
+```
+GET /api/Tracking/history/by-tag/{tagId}
+```
+
+Ham konum geçmişini (`LocationEvents`) döner.
+
+---
+
+### User Movement History
+
+```
+GET /api/Tracking/movement-history/by-user/{userId}
+```
+
+Filtrelenmiş hareket geçmişini (`MovementEvents`) döner.
+
+---
+
+### Person Movement Report
+
+```
+GET /api/Tracking/movement-report/by-user/{userId}
+```
+
+Kullanıcının hareket raporunu döner.
+
+Desteklenen filtreler:
+
+- from
+- to
+- companyId
+- branchId
+- floorMapId
+- floorMapZoneId
+- page
+- pageSize
+
+---
+
+### Playback API
+
+```
+GET /api/Tracking/playback/by-user/{userId}
+```
+
+Harita üzerinde rota oynatımı (Playback) için optimize edilmiş hareket noktalarını döner.
+
+Özellikler:
+
+- kronolojik sıralı
+- FloorMap değişiminde otomatik segmentleme
+- maxPoints limiti
+- frontend doğrudan polyline çizebilir
+
+---
+
+### HeatMap API
+
+```
+GET /api/Tracking/heatmap
+```
+
+MovementEvents üzerinden heatmap hücrelerini üretir.
+
+Zorunlu parametre:
+
+- floorMapId
+
+Opsiyonel filtreler:
+
+- userId
+- companyId
+- branchId
+- floorMapZoneId
+- gridSize
+- from
+- to
+
+Response her hücre için;
+
+- X
+- Y
+- Count
+- Intensity
+
+bilgisini döner.
+
+---
+
+## MovementEvents Kullanım Alanları
+
+MovementEvents aşağıdaki servisler tarafından kullanılır:
+
+- Person Movement Report
+- Playback API
+- HeatMap API
+- (ileride) Alarm Engine
+- (ileride) Analytics
+- (ileride) TimescaleDB Continuous Aggregates
+
+---
+
+## Gelecek Geliştirmeler
+
+Henüz geliştirilmeyen modüller:
+
+- Live Tracking Playback UI
+- Alarm Engine
+- TimescaleDB Continuous Aggregates
+- TimescaleDB Compression
+- Continuous Materialized Views
+- Long-term analytics
 ```
 
