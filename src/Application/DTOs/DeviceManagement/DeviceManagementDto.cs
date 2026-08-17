@@ -18,6 +18,10 @@ public sealed record TagDto(
     int? BatteryLevel,
     DateTime? LastSeenAt,
     DateTime? LastEventAt,
+
+    Guid? CompanyId,
+    Guid? BranchId,
+
     string? MetadataJson,
     AssignedUserDto? AssignedUser
 );

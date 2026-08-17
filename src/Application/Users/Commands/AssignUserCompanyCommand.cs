@@ -7,7 +7,8 @@ namespace Application.Users.Commands;
 public record AssignUserToCompanyCommand(
     Guid UserId,
     Guid CompanyId,
-    Guid PerformedByUserId)
+    Guid PerformedByUserId,
+    string? UserCode = null)
     : IRequest<Result<Unit>>;
 
 public class AssignUserToCompanyHandler
@@ -34,16 +35,21 @@ public class AssignUserToCompanyHandler
         AssignUserToCompanyCommand req,
         CancellationToken ct)
     {
-        var user = await _users.GetByIdAsync(
-            req.UserId,
-            ct);
+        var user =
+            await _users.GetByIdAsync(
+                req.UserId,
+                ct);
 
         if (user is null)
-            return Result<Unit>.Failure("User not found");
+        {
+            return Result<Unit>.Failure(
+                "User not found");
+        }
 
-        var company = await _companies.GetByIdAsync(
-            req.CompanyId,
-            ct);
+        var company =
+            await _companies.GetByIdAsync(
+                req.CompanyId,
+                ct);
 
         if (company is null)
         {
@@ -51,11 +57,23 @@ public class AssignUserToCompanyHandler
                 "Company not found or you do not have access to it");
         }
 
-        var userCode =
-            await _userCompanies.AddOrReactivateAsync(
-                req.UserId,
-                req.CompanyId,
-                ct);
+        string? userCode;
+
+        try
+        {
+            userCode =
+                await _userCompanies
+                    .AddOrReactivateAsync(
+                        req.UserId,
+                        req.CompanyId,
+                        req.UserCode,
+                        ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Result<Unit>.Failure(
+                ex.Message);
+        }
 
         if (string.IsNullOrWhiteSpace(userCode))
         {
@@ -65,6 +83,7 @@ public class AssignUserToCompanyHandler
 
         await _uow.SaveChangesAsync(ct);
 
-        return Result<Unit>.Success(Unit.Value);
+        return Result<Unit>.Success(
+            Unit.Value);
     }
 }

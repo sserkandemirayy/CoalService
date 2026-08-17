@@ -13,6 +13,7 @@ public record CreateUserCommand(
     string LastName,
     Guid UserTypeId,
     Guid CompanyId,
+    string? UserCode,
     string? Phone,
     string? Address,
     string? NationalId,
@@ -22,7 +23,8 @@ public record CreateUserCommand(
     Guid PerformedByUserId
 ) : IRequest<Result<Guid>>;
 
-public class CreateUserValidator : AbstractValidator<CreateUserCommand>
+public class CreateUserValidator
+    : AbstractValidator<CreateUserCommand>
 {
     public CreateUserValidator()
     {
@@ -41,6 +43,17 @@ public class CreateUserValidator : AbstractValidator<CreateUserCommand>
 
         RuleFor(x => x.CompanyId)
             .NotEmpty();
+
+        When(
+            x => !string.IsNullOrWhiteSpace(x.UserCode),
+            () =>
+            {
+                RuleFor(x => x.UserCode!)
+                    .MaximumLength(8)
+                    .Matches("^[A-Za-z0-9_-]+$")
+                    .WithMessage(
+                        "UserCode can contain only letters, numbers, '-' and '_'.");
+            });
     }
 }
 
@@ -80,27 +93,63 @@ public class CreateUserHandler
         CreateUserCommand req,
         CancellationToken ct)
     {
-        var email = req.Email.Trim().ToLowerInvariant();
+        var email =
+            req.Email
+                .Trim()
+                .ToLowerInvariant();
 
-        var existing = await _users.FindByEmailAsync(email, ct);
+        var existing =
+            await _users.FindByEmailAsync(
+                email,
+                ct);
 
         if (existing is not null)
-            return Result<Guid>.Failure("Email already exists");
+        {
+            return Result<Guid>.Failure(
+                "Email already exists");
+        }
 
-        var type = await _userTypes.GetByIdAsync(
-            req.UserTypeId,
-            ct);
+        var type =
+            await _userTypes.GetByIdAsync(
+                req.UserTypeId,
+                ct);
 
         if (type is null)
-            return Result<Guid>.Failure("Invalid UserTypeId");
+        {
+            return Result<Guid>.Failure(
+                "Invalid UserTypeId");
+        }
 
-        var company = await _companies.GetByIdAsync(
-            req.CompanyId,
-            ct);
+        var company =
+            await _companies.GetByIdAsync(
+                req.CompanyId,
+                ct);
 
         if (company is null)
+        {
             return Result<Guid>.Failure(
                 "Company not found or you do not have access to it");
+        }
+
+        if (!string.IsNullOrWhiteSpace(req.UserCode))
+        {
+            var normalizedCode =
+                UserCompany.NormalizeUserCode(
+                    req.UserCode);
+
+            var codeExists =
+                await _userCompanies.UserCodeExistsAsync(
+                    req.CompanyId,
+                    normalizedCode,
+                    null,
+                    ct);
+
+            if (codeExists)
+            {
+                return Result<Guid>.Failure(
+                    $"User code '{normalizedCode}' already exists in the selected company");
+            }
+        }
 
         if (req.UserSpecializationId.HasValue)
         {
@@ -115,16 +164,18 @@ public class CreateUserHandler
                     "Specialization not found");
             }
 
-            if (specialization.UserTypeId != req.UserTypeId)
+            if (specialization.UserTypeId !=
+                req.UserTypeId)
             {
                 return Result<Guid>.Failure(
                     "Specialization does not belong to selected UserType");
             }
         }
 
-        var defaultRole = await _roles.FindByNameAsync(
-            RtlsRoleNames.Viewer,
-            ct);
+        var defaultRole =
+            await _roles.FindByNameAsync(
+                RtlsRoleNames.Viewer,
+                ct);
 
         if (defaultRole is null)
         {
@@ -141,7 +192,8 @@ public class CreateUserHandler
             req.LastName.Trim(),
             req.UserTypeId);
 
-        user.CreatedBy = req.PerformedByUserId;
+        user.CreatedBy =
+            req.PerformedByUserId;
 
         user.UpdateProfile(
             req.FirstName.Trim(),
@@ -151,22 +203,41 @@ public class CreateUserHandler
             req.NationalId ?? string.Empty,
             req.Gender ?? string.Empty);
 
-        user.SetBirthDate(req.BirthDate);
+        user.SetBirthDate(
+            req.BirthDate);
 
         if (req.UserSpecializationId.HasValue)
-            user.SetSpecialization(req.UserSpecializationId.Value);
+        {
+            user.SetSpecialization(
+                req.UserSpecializationId.Value);
+        }
 
-        await _users.AddAsync(user, ct);
-
-        var userCode = await _userCompanies.AddOrReactivateAsync(
-            user.Id,
-            req.CompanyId,
+        await _users.AddAsync(
+            user,
             ct);
+
+        string? userCode;
+
+        try
+        {
+            userCode =
+                await _userCompanies
+                    .AddOrReactivateAsync(
+                        user.Id,
+                        req.CompanyId,
+                        req.UserCode,
+                        ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Result<Guid>.Failure(
+                ex.Message);
+        }
 
         if (string.IsNullOrWhiteSpace(userCode))
         {
             return Result<Guid>.Failure(
-                "User code could not be generated for the selected company");
+                "User code could not be created for the selected company");
         }
 
         await _users.AssignRoleAsync(
@@ -176,6 +247,7 @@ public class CreateUserHandler
 
         await _uow.SaveChangesAsync(ct);
 
-        return Result<Guid>.Success(user.Id);
+        return Result<Guid>.Success(
+            user.Id);
     }
 }

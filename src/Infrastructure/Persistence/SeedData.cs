@@ -63,12 +63,6 @@ public static class SeedData
         {
             "super_admin",
             "company_admin",
-            "branch_admin",
-            "dispatch_operator",
-            "safety_operator",
-            "security_operator",
-            "maintenance_operator",
-            "field_supervisor",
             "viewer"
         };
 
@@ -150,149 +144,101 @@ public static class SeedData
         // =========================================================
         // ROLE - PERMISSION MAPPING
         // =========================================================
-        var roles = db.Roles.ToDictionary(r => r.Name, r => r.Id);
+        var roles = db.Roles
+            .Where(r =>
+                r.Name == "super_admin" ||
+                r.Name == "company_admin" ||
+                r.Name == "viewer")
+            .ToDictionary(r => r.Name, r => r.Id);
+
         var perms = db.Permissions.ToDictionary(p => p.Name, p => p.Id);
 
         var mappings = new List<(string Role, string Permission)>
-        {
-            // super admin -> her şey
+{
+            // =====================================================
+            // SUPER ADMIN 
+            // =====================================================
             ("super_admin","manage_users"),
             ("super_admin","manage_roles"),
             ("super_admin","manage_permissions"),
             ("super_admin","manage_settings"),
+
             ("super_admin","manage_companies"),
             ("super_admin","manage_branches"),
+
             ("super_admin","view_devices"),
             ("super_admin","manage_tags"),
             ("super_admin","manage_anchors"),
             ("super_admin","assign_tags"),
             ("super_admin","view_config_snapshots"),
             ("super_admin","manage_device_configs"),
+
             ("super_admin","view_dashboard"),
             ("super_admin","view_tracking"),
             ("super_admin","view_tracking_history"),
+
             ("super_admin","view_events"),
             ("super_admin","view_raw_events"),
+
             ("super_admin","view_alarms"),
             ("super_admin","acknowledge_alarms"),
             ("super_admin","manage_alarms"),
+
             ("super_admin","view_commands"),
             ("super_admin","create_commands"),
             ("super_admin","queue_commands"),
             ("super_admin","cancel_commands"),
             ("super_admin","retry_commands"),
+
             ("super_admin","view_reports"),
+
             ("super_admin","view_pii"),
             ("super_admin","edit_pii"),
             ("super_admin","export_pii"),
 
-            // company admin
+
+            // =====================================================
+            // COMPANY ADMIN
+            // =====================================================
             ("company_admin","manage_users"),
+
             ("company_admin","manage_companies"),
             ("company_admin","manage_branches"),
+
             ("company_admin","view_devices"),
             ("company_admin","manage_tags"),
             ("company_admin","manage_anchors"),
             ("company_admin","assign_tags"),
             ("company_admin","view_config_snapshots"),
             ("company_admin","manage_device_configs"),
+
             ("company_admin","view_dashboard"),
             ("company_admin","view_tracking"),
             ("company_admin","view_tracking_history"),
+
             ("company_admin","view_events"),
             ("company_admin","view_raw_events"),
+
             ("company_admin","view_alarms"),
             ("company_admin","acknowledge_alarms"),
             ("company_admin","manage_alarms"),
+
             ("company_admin","view_commands"),
             ("company_admin","create_commands"),
             ("company_admin","queue_commands"),
             ("company_admin","cancel_commands"),
             ("company_admin","retry_commands"),
+
             ("company_admin","view_reports"),
+
             ("company_admin","view_pii"),
             ("company_admin","edit_pii"),
             ("company_admin","export_pii"),
 
-            // branch admin
-            ("branch_admin","manage_users"),
-            ("branch_admin","view_devices"),
-            ("branch_admin","manage_tags"),
-            ("branch_admin","manage_anchors"),
-            ("branch_admin","assign_tags"),
-            ("branch_admin","view_config_snapshots"),
-            ("branch_admin","manage_device_configs"),
-            ("branch_admin","view_dashboard"),
-            ("branch_admin","view_tracking"),
-            ("branch_admin","view_tracking_history"),
-            ("branch_admin","view_events"),
-            ("branch_admin","view_alarms"),
-            ("branch_admin","acknowledge_alarms"),
-            ("branch_admin","manage_alarms"),
-            ("branch_admin","view_commands"),
-            ("branch_admin","create_commands"),
-            ("branch_admin","queue_commands"),
-            ("branch_admin","cancel_commands"),
-            ("branch_admin","retry_commands"),
-            ("branch_admin","view_reports"),
-            ("branch_admin","view_pii"),
 
-            // dispatch
-            ("dispatch_operator","view_devices"),
-            ("dispatch_operator","view_dashboard"),
-            ("dispatch_operator","view_tracking"),
-            ("dispatch_operator","view_tracking_history"),
-            ("dispatch_operator","view_events"),
-            ("dispatch_operator","view_alarms"),
-            ("dispatch_operator","acknowledge_alarms"),
-            ("dispatch_operator","view_commands"),
-            ("dispatch_operator","create_commands"),
-            ("dispatch_operator","queue_commands"),
-            ("dispatch_operator","cancel_commands"),
-
-            // safety
-            ("safety_operator","view_dashboard"),
-            ("safety_operator","view_tracking"),
-            ("safety_operator","view_tracking_history"),
-            ("safety_operator","view_events"),
-            ("safety_operator","view_alarms"),
-            ("safety_operator","acknowledge_alarms"),
-            ("safety_operator","manage_alarms"),
-            ("safety_operator","view_reports"),
-            ("safety_operator","view_pii"),
-
-            // security
-            ("security_operator","view_dashboard"),
-            ("security_operator","view_tracking"),
-            ("security_operator","view_events"),
-            ("security_operator","view_alarms"),
-            ("security_operator","acknowledge_alarms"),
-            ("security_operator","view_pii"),
-
-            // maintenance
-            ("maintenance_operator","view_devices"),
-            ("maintenance_operator","manage_tags"),
-            ("maintenance_operator","manage_anchors"),
-            ("maintenance_operator","view_config_snapshots"),
-            ("maintenance_operator","manage_device_configs"),
-            ("maintenance_operator","view_events"),
-            ("maintenance_operator","view_commands"),
-            ("maintenance_operator","create_commands"),
-            ("maintenance_operator","queue_commands"),
-            ("maintenance_operator","cancel_commands"),
-            ("maintenance_operator","retry_commands"),
-
-            // field supervisor
-            ("field_supervisor","view_dashboard"),
-            ("field_supervisor","view_tracking"),
-            ("field_supervisor","view_tracking_history"),
-            ("field_supervisor","view_events"),
-            ("field_supervisor","view_alarms"),
-            ("field_supervisor","acknowledge_alarms"),
-            ("field_supervisor","view_reports"),
-            ("field_supervisor","view_pii"),
-
-            // viewer
+            // =====================================================
+            // VIEWER 
+            // =====================================================
             ("viewer","view_dashboard"),
             ("viewer","view_tracking"),
             ("viewer","view_tracking_history"),
@@ -304,16 +250,21 @@ public static class SeedData
 
         foreach (var (role, permission) in mappings)
         {
-            if (roles.TryGetValue(role, out var roleId) && perms.TryGetValue(permission, out var permId))
+            if (roles.TryGetValue(role, out var roleId) &&
+                perms.TryGetValue(permission, out var permId))
             {
-                if (!db.RolePermissions.Any(rp => rp.RoleId == roleId && rp.PermissionId == permId))
+                if (!db.RolePermissions.Any(rp =>
+                        rp.RoleId == roleId &&
+                        rp.PermissionId == permId))
                 {
-                    db.RolePermissions.Add(RolePermission.Create(roleId, permId));
+                    db.RolePermissions.Add(
+                        RolePermission.Create(roleId, permId));
                 }
             }
         }
 
         db.SaveChanges();
+
         Console.WriteLine("✓ Rol-permission eşleşmeleri oluşturuldu.");
 
         // =========================================================
@@ -352,33 +303,215 @@ public static class SeedData
         // USERS
         // =========================================================
         var userSeeds = new List<UserSeedItem>
-        {
-            new("admin@rtls.local", "Admin123!", "Sistem", "Yöneticisi", "super_admin", "EMPLOYEE", "SUPERVISOR"),
-            new("serkan.demiray@live.com", "634496", "Sistem", "Yöneticisi", "super_admin", "EMPLOYEE", "SUPERVISOR"),
-            new("companyadmin@maden.local", "Admin123!", "Şirket", "Yöneticisi", "company_admin", "EMPLOYEE", "SUPERVISOR"),
-            new("branchadmin@maden.local", "Admin123!", "Şube", "Yöneticisi", "branch_admin", "EMPLOYEE", "SUPERVISOR"),
+{
+            // =====================================================
+            // SUPER ADMIN
+            // =====================================================
+            new(
+                "admin@rtls.local",
+                "Admin123!",
+                "Sistem",
+                "Yöneticisi",
+                "super_admin",
+                "EMPLOYEE",
+                "SUPERVISOR"
+            ),
 
-            new("dispatch1@maden.local", "123456", "Ahmet", "Koç", "dispatch_operator", "EMPLOYEE", "DISPATCHER"),
-            new("dispatch2@maden.local", "123456", "Merve", "Aydın", "dispatch_operator", "EMPLOYEE", "DISPATCHER"),
+            new(
+                "serkan.demiray@live.com",
+                "634496",
+                "Sistem",
+                "Yöneticisi",
+                "super_admin",
+                "EMPLOYEE",
+                "SUPERVISOR"
+            ),
 
-            new("safety1@maden.local", "123456", "Selin", "Yılmaz", "safety_operator", "EMPLOYEE", "SAFETY_SPECIALIST"),
-            new("security1@maden.local", "123456", "Burak", "Demir", "security_operator", "EMPLOYEE", "SECURITY_STAFF"),
 
-            new("maintenance1@maden.local", "123456", "Emre", "Kaya", "maintenance_operator", "EMPLOYEE", "MAINTENANCE_TECHNICIAN"),
-            new("mechanic1@maden.local", "123456", "Onur", "Çelik", "maintenance_operator", "EMPLOYEE", "MECHANIC"),
-            new("electric1@maden.local", "123456", "Deniz", "Arslan", "maintenance_operator", "EMPLOYEE", "ELECTRICIAN"),
+            // =====================================================
+            // COMPANY ADMIN
+            // =====================================================
+            new(
+                "companyadmin@maden.local",
+                "Admin123!",
+                "Şirket",
+                "Yöneticisi",
+                "company_admin",
+                "EMPLOYEE",
+                "SUPERVISOR"
+            ),
 
-            new("supervisor1@maden.local", "123456", "Hasan", "Şahin", "field_supervisor", "EMPLOYEE", "SUPERVISOR"),
+            new(
+                "branchadmin@maden.local",
+                "Admin123!",
+                "Şube",
+                "Yöneticisi",
+                "company_admin",
+                "EMPLOYEE",
+                "SUPERVISOR"
+            ),
 
-            new("worker1@maden.local", "123456", "İsmail", "Öztürk", "viewer", "EMPLOYEE", "UNDERGROUND_WORKER"),
-            new("worker2@maden.local", "123456", "Kemal", "Erdoğan", "viewer", "EMPLOYEE", "UNDERGROUND_WORKER"),
-            new("worker3@maden.local", "123456", "Yusuf", "Kurt", "viewer", "EMPLOYEE", "SURFACE_WORKER"),
 
-            new("contractor1@maden.local", "123456", "Murat", "Taş", "viewer", "CONTRACTOR", "CONTRACTOR_TECHNICIAN"),
-            new("contractor2@maden.local", "123456", "Cem", "Can", "viewer", "CONTRACTOR", "CONTRACTOR_OPERATOR"),
+            // =====================================================
+            // VIEWER
+            // =====================================================
 
-            new("visitor1@maden.local", "123456", "Ece", "Aksoy", "viewer", "VISITOR", "VISITOR_STANDARD"),
-            new("auditor1@maden.local", "123456", "Levent", "Ünal", "viewer", "VISITOR", "AUDITOR")
+            new(
+                "dispatch1@maden.local",
+                "123456",
+                "Ahmet",
+                "Koç",
+                "viewer",
+                "EMPLOYEE",
+                "DISPATCHER"
+            ),
+
+            new(
+                "dispatch2@maden.local",
+                "123456",
+                "Merve",
+                "Aydın",
+                "viewer",
+                "EMPLOYEE",
+                "DISPATCHER"
+            ),
+
+            // Safety
+            new(
+                "safety1@maden.local",
+                "123456",
+                "Selin",
+                "Yılmaz",
+                "viewer",
+                "EMPLOYEE",
+                "SAFETY_SPECIALIST"
+            ),
+
+            // Security
+            new(
+                "security1@maden.local",
+                "123456",
+                "Burak",
+                "Demir",
+                "viewer",
+                "EMPLOYEE",
+                "SECURITY_STAFF"
+            ),
+
+            // Maintenance
+            new(
+                "maintenance1@maden.local",
+                "123456",
+                "Emre",
+                "Kaya",
+                "viewer",
+                "EMPLOYEE",
+                "MAINTENANCE_TECHNICIAN"
+            ),
+
+            new(
+                "mechanic1@maden.local",
+                "123456",
+                "Onur",
+                "Çelik",
+                "viewer",
+                "EMPLOYEE",
+                "MECHANIC"
+            ),
+
+            new(
+                "electric1@maden.local",
+                "123456",
+                "Deniz",
+                "Arslan",
+                "viewer",
+                "EMPLOYEE",
+                "ELECTRICIAN"
+            ),
+
+            // Supervisor
+            new(
+                "supervisor1@maden.local",
+                "123456",
+                "Hasan",
+                "Şahin",
+                "viewer",
+                "EMPLOYEE",
+                "SUPERVISOR"
+            ),
+
+            // Workers
+            new(
+                "worker1@maden.local",
+                "123456",
+                "İsmail",
+                "Öztürk",
+                "viewer",
+                "EMPLOYEE",
+                "UNDERGROUND_WORKER"
+            ),
+
+            new(
+                "worker2@maden.local",
+                "123456",
+                "Kemal",
+                "Erdoğan",
+                "viewer",
+                "EMPLOYEE",
+                "UNDERGROUND_WORKER"
+            ),
+
+            new(
+                "worker3@maden.local",
+                "123456",
+                "Yusuf",
+                "Kurt",
+                "viewer",
+                "EMPLOYEE",
+                "SURFACE_WORKER"
+            ),
+
+            // Contractors
+            new(
+                "contractor1@maden.local",
+                "123456",
+                "Murat",
+                "Taş",
+                "viewer",
+                "CONTRACTOR",
+                "CONTRACTOR_TECHNICIAN"
+            ),
+
+            new(
+                "contractor2@maden.local",
+                "123456",
+                "Cem",
+                "Can",
+                "viewer",
+                "CONTRACTOR",
+                "CONTRACTOR_OPERATOR"
+            ),
+
+            // Visitors
+            new(
+                "visitor1@maden.local",
+                "123456",
+                "Ece",
+                "Aksoy",
+                "viewer",
+                "VISITOR",
+                "VISITOR_STANDARD"
+            ),
+
+            new(
+                "auditor1@maden.local",
+                "123456",
+                "Levent",
+                "Ünal",
+                "viewer",
+                "VISITOR",
+                "AUDITOR"
+            )
         };
 
         foreach (var item in userSeeds)
@@ -394,19 +527,29 @@ public static class SeedData
                 userTypes[item.UserTypeCode].Id
             );
 
-            user.SetSpecialization(specializations[item.SpecializationCode].Id);
+            user.SetSpecialization(
+                specializations[item.SpecializationCode].Id);
 
             db.Users.Add(user);
             db.SaveChanges();
 
-            var role = db.Roles.First(x => x.Name == item.RoleName);
-            if (!db.UserRoles.Any(ur => ur.UserId == user.Id && ur.RoleId == role.Id))
+            var role = db.Roles.First(
+                x => x.Name == item.RoleName);
+
+            if (!db.UserRoles.Any(ur =>
+                    ur.UserId == user.Id &&
+                    ur.RoleId == role.Id))
             {
-                db.UserRoles.Add(UserRole.Create(user.Id, role.Id));
+                db.UserRoles.Add(
+                    UserRole.Create(
+                        user.Id,
+                        role.Id));
+
                 db.SaveChanges();
             }
 
-            Console.WriteLine($"✓ Kullanıcı oluşturuldu: {item.Email}");
+            Console.WriteLine(
+                $"✓ Kullanıcı oluşturuldu: {item.Email}");
         }
 
         // =========================================================

@@ -2,12 +2,14 @@
 using Api.Security;
 using Api.Services;
 using Api.Hubs;
+using Api.Middleware;
 using Application.Common.Realtime;
 using Application.Common.Behaviors;
 using Application.Common.Options;
 using Application.Common.Maps;
 using Application.Common.Notifications;
 using Application.Dashboard;
+using Application.Common.SystemHealth;
 using Domain.Abstractions;
 using Domain.Entities;
 using FluentValidation;
@@ -22,6 +24,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text;
+
+
 
 
 
@@ -139,6 +143,18 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<INotificationSignalRNotifier, NotificationSignalRNotifier>();
 
 builder.Services.AddScoped<IAlarmNoteRepository, AlarmNoteRepository>();
+
+// EQUIPMENT MANAGEMENT
+builder.Services.AddScoped<IEquipmentCategoryRepository, EquipmentCategoryRepository>();
+builder.Services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+builder.Services.AddScoped<IEquipmentInspectionRepository, EquipmentInspectionRepository>();
+
+//SYSTEM HEALTH
+builder.Services.AddSingleton<IApiMetricsStore, ApiMetricsStore>();
+builder.Services.AddSingleton<DatabaseHealthState>();
+builder.Services.AddSingleton<SystemResourceMonitor>();
+builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<SystemResourceMonitor>());
+builder.Services.AddScoped<ISystemHealthService, SystemHealthService>();
 
 // MediatR - Validation
 builder.Services.AddMediatR(cfg =>
@@ -391,6 +407,8 @@ if (app.Environment.IsDevelopment() || true)
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<SystemMetricsMiddleware>();
 
 // Global hata yönetimi
 app.UseGlobalExceptionHandling();

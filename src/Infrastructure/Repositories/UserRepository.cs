@@ -205,12 +205,17 @@ public class UserRepository : IUserRepository
         if (specializationId.HasValue && specializationId.Value == Guid.Empty)
             specializationId = null;
 
+
         // Search
         if (!string.IsNullOrWhiteSpace(q))
+        {
+            var search = q.Trim();
+
             query = query.Where(u =>
-                u.FirstName.Contains(q) ||
-                u.LastName.Contains(q) ||
-                u.Email.Contains(q));
+                EF.Functions.ILike(u.FirstName, $"%{search}%") ||
+                EF.Functions.ILike(u.LastName, $"%{search}%") ||
+                EF.Functions.ILike(u.Email, $"%{search}%"));
+        }
 
         // Role
         if (!string.IsNullOrWhiteSpace(role))

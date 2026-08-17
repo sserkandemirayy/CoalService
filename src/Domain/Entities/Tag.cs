@@ -11,9 +11,23 @@ public class Tag : BaseEntity
     public string Code { get; private set; } = default!;
     public string? Name { get; private set; }
     public string? SerialNumber { get; private set; }
+
     public TagType TagType { get; private set; } = TagType.Personnel;
     public TagStatus Status { get; private set; } = TagStatus.Inactive;
+
     public bool IsActive { get; private set; } = true;
+
+    // ================================================================
+    // COMPANY / BRANCH
+    // ================================================================
+
+    public Guid? CompanyId { get; private set; }
+    public Company? Company { get; private set; }
+
+    public Guid? BranchId { get; private set; }
+    public Branch? Branch { get; private set; }
+
+    // ================================================================
 
     public int? BatteryLevel { get; private set; }
     public DateTime? LastSeenAt { get; private set; }
@@ -39,25 +53,48 @@ public class Tag : BaseEntity
 
     public ICollection<TagDataEvent> TagDataEvents { get; private set; } = new List<TagDataEvent>();
     public ICollection<UwbRangingEvent> UwbRangingEvents { get; private set; } = new List<UwbRangingEvent>();
-    public ICollection<UwbTagToTagRangingEvent> PrimaryUwbTagToTagRangingEvents { get; private set; } = new List<UwbTagToTagRangingEvent>();
-    public ICollection<UwbTagToTagRangingEvent> PeerUwbTagToTagRangingEvents { get; private set; } = new List<UwbTagToTagRangingEvent>();
+
+    public ICollection<UwbTagToTagRangingEvent> PrimaryUwbTagToTagRangingEvents { get; private set; }
+        = new List<UwbTagToTagRangingEvent>();
+
+    public ICollection<UwbTagToTagRangingEvent> PeerUwbTagToTagRangingEvents { get; private set; }
+        = new List<UwbTagToTagRangingEvent>();
 
     public ICollection<BleConfigEvent> BleConfigEvents { get; private set; } = new List<BleConfigEvent>();
     public ICollection<UwbConfigEvent> UwbConfigEvents { get; private set; } = new List<UwbConfigEvent>();
     public ICollection<DioConfigEvent> DioConfigEvents { get; private set; } = new List<DioConfigEvent>();
     public ICollection<I2cConfigEvent> I2cConfigEvents { get; private set; } = new List<I2cConfigEvent>();
 
-    public ICollection<TagBleConfigSnapshot> BleConfigSnapshots { get; private set; } = new List<TagBleConfigSnapshot>();
-    public ICollection<TagUwbConfigSnapshot> UwbConfigSnapshots { get; private set; } = new List<TagUwbConfigSnapshot>();
-    public ICollection<TagDioConfigSnapshot> DioConfigSnapshots { get; private set; } = new List<TagDioConfigSnapshot>();
-    public ICollection<TagI2cConfigSnapshot> I2cConfigSnapshots { get; private set; } = new List<TagI2cConfigSnapshot>();
+    public ICollection<TagBleConfigSnapshot> BleConfigSnapshots { get; private set; }
+        = new List<TagBleConfigSnapshot>();
 
-    public ICollection<BleAdvertisementEvent> BleAdvertisementEvents { get; private set; } = new List<BleAdvertisementEvent>();
-    public ICollection<DioValueEvent> DioValueEvents { get; private set; } = new List<DioValueEvent>();
-    public ICollection<TagDioValueSnapshot> DioValueSnapshots { get; private set; } = new List<TagDioValueSnapshot>();
-    public ICollection<I2cDataEvent> I2cDataEvents { get; private set; } = new List<I2cDataEvent>();
+    public ICollection<TagUwbConfigSnapshot> UwbConfigSnapshots { get; private set; }
+        = new List<TagUwbConfigSnapshot>();
 
-    public ICollection<CommandRequest> CommandRequests { get; private set; } = new List<CommandRequest>();
+    public ICollection<TagDioConfigSnapshot> DioConfigSnapshots { get; private set; }
+        = new List<TagDioConfigSnapshot>();
+
+    public ICollection<TagI2cConfigSnapshot> I2cConfigSnapshots { get; private set; }
+        = new List<TagI2cConfigSnapshot>();
+
+    public ICollection<BleAdvertisementEvent> BleAdvertisementEvents { get; private set; }
+        = new List<BleAdvertisementEvent>();
+
+    public ICollection<DioValueEvent> DioValueEvents { get; private set; }
+        = new List<DioValueEvent>();
+
+    public ICollection<TagDioValueSnapshot> DioValueSnapshots { get; private set; }
+        = new List<TagDioValueSnapshot>();
+
+    public ICollection<I2cDataEvent> I2cDataEvents { get; private set; }
+        = new List<I2cDataEvent>();
+
+    public ICollection<CommandRequest> CommandRequests { get; private set; }
+        = new List<CommandRequest>();
+
+    // ================================================================
+    // CREATE
+    // ================================================================
 
     public static Tag Create(
         string externalId,
@@ -65,13 +102,27 @@ public class Tag : BaseEntity
         string? name = null,
         string? serialNumber = null,
         TagType tagType = TagType.Personnel,
-        string? metadataJson = null)
+        string? metadataJson = null,
+        Guid? companyId = null,
+        Guid? branchId = null)
     {
         if (string.IsNullOrWhiteSpace(externalId))
-            throw new ArgumentException("ExternalId is required.", nameof(externalId));
+            throw new ArgumentException(
+                "ExternalId is required.",
+                nameof(externalId));
 
         if (string.IsNullOrWhiteSpace(code))
-            throw new ArgumentException("Code is required.", nameof(code));
+            throw new ArgumentException(
+                "Code is required.",
+                nameof(code));
+
+        if (!companyId.HasValue || companyId.Value == Guid.Empty)
+            throw new ArgumentException(
+                "CompanyId is required.",
+                nameof(companyId));
+
+        if (branchId.HasValue && branchId.Value == Guid.Empty)
+            branchId = null;
 
         return new Tag
         {
@@ -81,22 +132,54 @@ public class Tag : BaseEntity
             SerialNumber = serialNumber?.Trim(),
             TagType = tagType,
             MetadataJson = metadataJson,
+
+            CompanyId = companyId,
+            BranchId = branchId,
+
             Status = TagStatus.Inactive,
             IsActive = true
         };
     }
 
-    public void UpdateInfo(string code, string? name, string? serialNumber, TagType tagType, string? metadataJson)
+    // ================================================================
+    // UPDATE
+    // ================================================================
+
+    public void UpdateInfo(
+        string code,
+        string? name,
+        string? serialNumber,
+        TagType tagType,
+        string? metadataJson,
+        Guid? companyId,
+        Guid? branchId)
     {
         if (string.IsNullOrWhiteSpace(code))
-            throw new ArgumentException("Code is required.", nameof(code));
+            throw new ArgumentException(
+                "Code is required.",
+                nameof(code));
+
+        if (!companyId.HasValue || companyId.Value == Guid.Empty)
+            throw new ArgumentException(
+                "CompanyId is required.",
+                nameof(companyId));
+
+        if (branchId.HasValue && branchId.Value == Guid.Empty)
+            branchId = null;
 
         Code = code.Trim();
         Name = name?.Trim();
         SerialNumber = serialNumber?.Trim();
         TagType = tagType;
         MetadataJson = metadataJson;
+
+        CompanyId = companyId;
+        BranchId = branchId;
     }
+
+    // ================================================================
+    // STATUS / DEVICE OPERATIONS
+    // ================================================================
 
     public void MarkSeen(DateTime eventAt)
     {
@@ -105,6 +188,7 @@ public class Tag : BaseEntity
 
         LastSeenAt = eventAt;
         LastEventAt = eventAt;
+
         if (IsActive)
             Status = TagStatus.Online;
     }
@@ -119,21 +203,32 @@ public class Tag : BaseEntity
 
         BatteryLevel = batteryLevel;
         LastEventAt = eventAt;
+
         if (LastSeenAt == null || eventAt > LastSeenAt)
             LastSeenAt = eventAt;
     }
 
-    public void SetStatus(TagStatus status, DateTime? eventAt = null)
+    public void SetStatus(
+        TagStatus status,
+        DateTime? eventAt = null)
     {
-        if (eventAt.HasValue && LastEventAt.HasValue && eventAt.Value < LastEventAt.Value)
+        if (eventAt.HasValue &&
+            LastEventAt.HasValue &&
+            eventAt.Value < LastEventAt.Value)
+        {
             return;
+        }
 
         Status = status;
+
         if (eventAt.HasValue)
             LastEventAt = eventAt.Value;
     }
 
-    public void Activate() => IsActive = true;
+    public void Activate()
+    {
+        IsActive = true;
+    }
 
     public void Deactivate()
     {

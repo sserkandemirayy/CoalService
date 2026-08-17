@@ -104,6 +104,11 @@ public class AppDbContext : DbContext
 
     public DbSet<AlarmNote> AlarmNotes => Set<AlarmNote>();
 
+    // EQUIPMENT MANAGEMENT
+    public DbSet<EquipmentCategory> EquipmentCategories => Set<EquipmentCategory>();
+    public DbSet<Equipment> Equipments => Set<Equipment>();
+    public DbSet<EquipmentInspection> EquipmentInspections => Set<EquipmentInspection>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
 
@@ -369,26 +374,74 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(x => x.Id);
 
-            entity.Property(x => x.ExternalId).IsRequired().HasMaxLength(200);
-            entity.Property(x => x.Code).IsRequired().HasMaxLength(100);
-            entity.Property(x => x.Name).HasMaxLength(200);
-            entity.Property(x => x.SerialNumber).HasMaxLength(200);
-            entity.Property(x => x.MetadataJson).HasColumnType("jsonb");
-            entity.Property(x => x.TagType).HasConversion<string>().HasMaxLength(50);
-            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(50);
-            entity.Property(x => x.IsActive).HasDefaultValue(true);
+            entity.Property(x => x.ExternalId)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(x => x.Code)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(x => x.Name)
+                .HasMaxLength(200);
+
+            entity.Property(x => x.SerialNumber)
+                .HasMaxLength(200);
+
+            entity.Property(x => x.MetadataJson)
+                .HasColumnType("jsonb");
+
+            entity.Property(x => x.TagType)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            entity.Property(x => x.Status)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            entity.Property(x => x.IsActive)
+                .HasDefaultValue(true);
+
 
             entity.HasIndex(x => x.ExternalId)
-                  .IsUnique()
-                  .HasFilter("\"DeletedAt\" IS NULL");
+                .IsUnique()
+                .HasFilter("\"DeletedAt\" IS NULL");
 
             entity.HasIndex(x => x.Code)
-                  .IsUnique()
-                  .HasFilter("\"DeletedAt\" IS NULL");
+                .IsUnique()
+                .HasFilter("\"DeletedAt\" IS NULL");
 
             entity.HasIndex(x => x.Status);
+            entity.HasIndex(x => x.TagType);
             entity.HasIndex(x => x.LastSeenAt);
             entity.HasIndex(x => x.LastEventAt);
+
+            entity.HasIndex(x => x.CompanyId);
+            entity.HasIndex(x => x.BranchId);
+
+            entity.HasIndex(x => new
+            {
+                x.CompanyId,
+                x.Status
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.BranchId,
+                x.Status
+            });
+
+
+            entity.HasOne(x => x.Company)
+                .WithMany()
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+
+            entity.HasOne(x => x.Branch)
+                .WithMany()
+                .HasForeignKey(x => x.BranchId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // ==== Anchor ====
@@ -1436,6 +1489,198 @@ public class AppDbContext : DbContext
                   .HasFilter("\"DeletedAt\" IS NULL");
 
             entity.HasIndex(x => x.IsActive);
+        });
+
+        // =========================================================
+        // EQUIPMENT MANAGEMENT
+        // =========================================================
+
+        // ==== EquipmentCategory ====
+        modelBuilder.Entity<EquipmentCategory>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Code)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(x => x.Name)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(x => x.Description)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.Icon)
+                .HasMaxLength(200);
+
+            entity.Property(x => x.ShowOnMap)
+                .HasDefaultValue(true);
+
+            entity.Property(x => x.IsActive)
+                .HasDefaultValue(true);
+
+            entity.HasIndex(x => x.CompanyId);
+
+            entity.HasIndex(x => new
+            {
+                x.CompanyId,
+                x.Code
+            })
+            .IsUnique()
+            .HasFilter("\"DeletedAt\" IS NULL");
+
+            entity.HasIndex(x => new
+            {
+                x.CompanyId,
+                x.IsActive
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.CompanyId,
+                x.ShowOnMap
+            });
+
+            entity.HasOne(x => x.Company)
+                .WithMany()
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ==== Equipment ====
+        modelBuilder.Entity<Equipment>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Code)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(x => x.Name)
+                .IsRequired()
+                .HasMaxLength(250);
+
+            entity.Property(x => x.SerialNumber)
+                .HasMaxLength(200);
+
+            entity.Property(x => x.Manufacturer)
+                .HasMaxLength(200);
+
+            entity.Property(x => x.Model)
+                .HasMaxLength(200);
+
+            entity.Property(x => x.Status)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            entity.Property(x => x.X)
+                .HasPrecision(18, 6);
+
+            entity.Property(x => x.Y)
+                .HasPrecision(18, 6);
+
+            entity.Property(x => x.Z)
+                .HasPrecision(18, 6);
+
+            entity.Property(x => x.Notes)
+                .HasMaxLength(4000);
+
+            entity.Property(x => x.MetadataJson)
+                .HasColumnType("jsonb");
+
+            entity.Property(x => x.IsActive)
+                .HasDefaultValue(true);
+
+            entity.HasIndex(x => x.CompanyId);
+
+            entity.HasIndex(x => x.BranchId);
+
+            entity.HasIndex(x => x.CategoryId);
+
+            entity.HasIndex(x => x.FloorMapId);
+
+            entity.HasIndex(x => x.Status);
+
+            entity.HasIndex(x => x.IsActive);
+
+            entity.HasIndex(x => x.ExpirationDate);
+
+            entity.HasIndex(x => x.NextInspectionAt);
+
+            entity.HasIndex(x => new
+            {
+                x.CompanyId,
+                x.Code
+            })
+            .IsUnique()
+            .HasFilter("\"DeletedAt\" IS NULL");
+
+            entity.HasIndex(x => new
+            {
+                x.FloorMapId,
+                x.IsActive
+            });
+
+            entity.HasOne(x => x.Company)
+                .WithMany()
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Branch)
+                .WithMany()
+                .HasForeignKey(x => x.BranchId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.Category)
+                .WithMany(x => x.Equipments)
+                .HasForeignKey(x => x.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.FloorMap)
+                .WithMany()
+                .HasForeignKey(x => x.FloorMapId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ==== EquipmentInspection ====
+        modelBuilder.Entity<EquipmentInspection>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Result)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            entity.Property(x => x.Note)
+                .HasMaxLength(4000);
+
+            entity.Property(x => x.DataJson)
+                .HasColumnType("jsonb");
+
+            entity.HasIndex(x => x.EquipmentId);
+
+            entity.HasIndex(x => x.InspectedByUserId);
+
+            entity.HasIndex(x => x.InspectedAt);
+
+            entity.HasIndex(x => x.Result);
+
+            entity.HasIndex(x => new
+            {
+                x.EquipmentId,
+                x.InspectedAt
+            });
+
+            entity.HasOne(x => x.Equipment)
+                .WithMany(x => x.Inspections)
+                .HasForeignKey(x => x.EquipmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.InspectedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.InspectedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // ==== Global Soft-Delete Filter ====

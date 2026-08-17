@@ -8,7 +8,8 @@ public record SyncUserCompaniesCommand(
     Guid UserId,
     List<Guid> Add,
     List<Guid> Remove,
-    Guid PerformedByUserId
+    Guid PerformedByUserId,
+    Dictionary<Guid, string?>? UserCodes = null
 ) : IRequest<Result<Unit>>;
 
 public class SyncUserCompaniesHandler
@@ -29,30 +30,56 @@ public class SyncUserCompaniesHandler
         SyncUserCompaniesCommand req,
         CancellationToken ct)
     {
-        var current = (await _repo.GetCompaniesByUserIdAsync(
+        var current =
+            (await _repo.GetCompaniesByUserIdAsync(
                 req.UserId,
                 ct))
             .Select(x => x.Id)
             .ToList();
 
-        var toAdd = req.Add
-            .Distinct()
-            .Except(current)
-            .ToList();
+        var toAdd =
+            req.Add
+                .Distinct()
+                .Except(current)
+                .ToList();
 
-        var toRemove = req.Remove
-            .Distinct()
-            .Intersect(current)
-            .ToList();
+        var toRemove =
+            req.Remove
+                .Distinct()
+                .Intersect(current)
+                .ToList();
 
         foreach (var companyId in toAdd)
         {
-            var userCode = await _repo.AddOrReactivateAsync(
-                req.UserId,
-                companyId,
-                ct);
+            string? requestedUserCode = null;
 
-            if (string.IsNullOrWhiteSpace(userCode))
+            if (req.UserCodes is not null &&
+                req.UserCodes.TryGetValue(
+                    companyId,
+                    out var code))
+            {
+                requestedUserCode = code;
+            }
+
+            string? generatedUserCode;
+
+            try
+            {
+                generatedUserCode =
+                    await _repo.AddOrReactivateAsync(
+                        req.UserId,
+                        companyId,
+                        requestedUserCode,
+                        ct);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Result<Unit>.Failure(
+                    ex.Message);
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                    generatedUserCode))
             {
                 return Result<Unit>.Failure(
                     $"User could not be assigned to company {companyId}");
@@ -70,6 +97,7 @@ public class SyncUserCompaniesHandler
 
         await _uow.SaveChangesAsync(ct);
 
-        return Result<Unit>.Success(Unit.Value);
+        return Result<Unit>.Success(
+            Unit.Value);
     }
 }
