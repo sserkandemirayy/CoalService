@@ -1455,30 +1455,7 @@ Response her hücre için;
 
 bilgisini döner.
 
----
 
-## MovementEvents Kullanım Alanları
 
-MovementEvents aşağıdaki servisler tarafından kullanılır:
-
-- Person Movement Report
-- Playback API
-- HeatMap API
-- (ileride) Alarm Engine
-- (ileride) Analytics
-- (ileride) TimescaleDB Continuous Aggregates
-
----
-
-## Gelecek Geliştirmeler
-
-Henüz geliştirilmeyen modüller:
-
-- Live Tracking Playback UI
-- Alarm Engine
-- TimescaleDB Continuous Aggregates
-- TimescaleDB Compression
-- Continuous Materialized Views
-- Long-term analytics
 ```
 
