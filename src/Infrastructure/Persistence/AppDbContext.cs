@@ -49,6 +49,8 @@ public class AppDbContext : DbContext
     public DbSet<LocationEvent> LocationEvents => Set<LocationEvent>();
     public DbSet<CurrentLocation> CurrentLocations => Set<CurrentLocation>();
 
+    public DbSet<MovementEvent> MovementEvents => Set<MovementEvent>();
+
     public DbSet<BatteryEvent> BatteryEvents => Set<BatteryEvent>();
     public DbSet<ImuEvent> ImuEvents => Set<ImuEvent>();
     public DbSet<ProximityEvent> ProximityEvents => Set<ProximityEvent>();
@@ -606,6 +608,124 @@ public class AppDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(x => x.FloorMapZoneId)
                   .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ==== MovementEvent ====
+        // Append-only time-series / reporting table.
+        modelBuilder.Entity<MovementEvent>(entity =>
+        {
+            entity.ToTable("MovementEvents");
+
+            // TimescaleDB hypertable'da unique / PK constraint
+            // partition column olan EventTimestamp'i içermelidir.
+            entity.HasKey(x => new
+            {
+                x.Id,
+                x.EventTimestamp
+            });
+
+            entity.Property(x => x.Id)
+                .ValueGeneratedNever();
+
+            entity.Property(x => x.RawEventId)
+                .IsRequired();
+
+            entity.Property(x => x.TagId)
+                .IsRequired();
+
+            entity.Property(x => x.TagExternalId)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(x => x.TagCode)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(x => x.TagType)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(x => x.UserFullName)
+                .HasMaxLength(250);
+
+            entity.Property(x => x.UserCode)
+                .HasMaxLength(8)
+                .IsUnicode(false);
+
+            entity.Property(x => x.X)
+                .HasPrecision(18, 6);
+
+            entity.Property(x => x.Y)
+                .HasPrecision(18, 6);
+
+            entity.Property(x => x.Z)
+                .HasPrecision(18, 6);
+
+            entity.Property(x => x.Accuracy)
+                .HasPrecision(18, 6);
+
+            entity.Property(x => x.Confidence)
+                .HasPrecision(5, 2);
+
+            entity.Property(x => x.EventTimestamp)
+                .IsRequired();
+
+            entity.Property(x => x.RecordReason)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(x => x.CreatedAt)
+                .IsRequired();
+
+            // ID tek baþýna unique DEÐÝL.
+            // Timescale partition key kuralý nedeniyle normal index.
+            entity.HasIndex(x => x.Id);
+
+            entity.HasIndex(x => x.RawEventId);
+
+            entity.HasIndex(x => new
+            {
+                x.TagId,
+                x.EventTimestamp
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.UserId,
+                x.EventTimestamp
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.CompanyId,
+                x.EventTimestamp
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.BranchId,
+                x.EventTimestamp
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.FloorMapId,
+                x.EventTimestamp
+            });
+
+            entity.HasIndex(x => new
+            {
+                x.FloorMapZoneId,
+                x.EventTimestamp
+            });
+
+            entity.HasIndex(x => x.EventTimestamp);
+
+            // Bilinçli olarak FK navigation tanýmlamýyoruz.
+            //
+            // MovementEvent historical snapshot'týr.
+            // Kullanýcý/tag/firma sonradan deðiþtirilse veya silinse bile
+            // geçmiþ hareket kaydýnýn aynen kalmasýný istiyoruz.
         });
 
         // ==== BatteryEvent ====

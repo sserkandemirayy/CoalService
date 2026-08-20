@@ -8,6 +8,7 @@ using Application.Common.Behaviors;
 using Application.Common.Options;
 using Application.Common.Maps;
 using Application.Common.Notifications;
+using Application.Common.Movement;
 using Application.Dashboard;
 using Application.Common.SystemHealth;
 using Domain.Abstractions;
@@ -83,6 +84,9 @@ builder.Services.AddScoped<ITagAssignmentRepository, TagAssignmentRepository>();
 builder.Services.AddScoped<IRawEventRepository, RawEventRepository>();
 builder.Services.AddScoped<ILocationEventRepository, LocationEventRepository>();
 builder.Services.AddScoped<ICurrentLocationRepository, CurrentLocationRepository>();
+builder.Services.AddScoped<IMovementEventRepository, MovementEventRepository>();
+
+builder.Services.AddSingleton<IMovementRecordingPolicy, MovementRecordingPolicy>();
 
 builder.Services.AddScoped<IBatteryEventRepository, BatteryEventRepository>();
 builder.Services.AddScoped<IImuEventRepository, ImuEventRepository>();
@@ -394,9 +398,18 @@ var app = builder.Build();
 // Apply migrations and seed
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var db =
+        scope.ServiceProvider
+            .GetRequiredService<AppDbContext>();
+
     db.Database.Migrate();
+
     SeedData.Initialize(db);
+
+    await TimescaleDbInitializer
+        .EnsureMovementEventsHypertableAsync(
+            db,
+            app.Logger);
 }
 
 // HTTPS yönlendirme

@@ -20,10 +20,19 @@ public class TagAssignmentRepository : ITagAssignmentRepository
         => await ApplyScope(_db.TagAssignments).FirstOrDefaultAsync(x => x.Id == id, ct);
 
 
-    public async Task<TagAssignment?> GetActiveByTagIdAsync(Guid tagId, CancellationToken ct = default)
-     => await ApplyScope(_db.TagAssignments)
-         .Include(x => x.User)
-         .FirstOrDefaultAsync(x => x.TagId == tagId && x.UnassignedAt == null, ct);
+    public async Task<TagAssignment?> GetActiveByTagIdAsync(
+    Guid tagId,
+    CancellationToken ct = default)
+    {
+        return await ApplyScope(_db.TagAssignments)
+            .Include(x => x.User)
+                .ThenInclude(x => x.UserCompanies)
+            .FirstOrDefaultAsync(
+                x =>
+                    x.TagId == tagId &&
+                    x.UnassignedAt == null,
+                ct);
+    }
 
     public async Task<TagAssignment?> GetActiveByUserIdAsync(Guid userId, CancellationToken ct = default)
         => await ApplyScope(_db.TagAssignments)

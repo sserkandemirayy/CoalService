@@ -1,6 +1,4 @@
-﻿using Domain.Enums;
-
-namespace Application.DTOs.Tracking;
+﻿namespace Application.DTOs.Tracking;
 
 public sealed record CurrentLocationDto(
     Guid Id,
@@ -31,6 +29,46 @@ public sealed record TagHistoryPointDto(
     decimal Z,
     decimal Accuracy,
     decimal Confidence
+);
+
+public sealed record MovementPointDto(
+    Guid Id,
+    Guid RawEventId,
+
+    Guid TagId,
+    string TagExternalId,
+    string TagCode,
+    string TagType,
+
+    Guid? UserId,
+    string? UserFullName,
+    string? UserCode,
+
+    Guid? CompanyId,
+    Guid? BranchId,
+
+    Guid? FloorMapId,
+    Guid? FloorMapZoneId,
+
+    decimal X,
+    decimal Y,
+    decimal Z,
+
+    decimal Accuracy,
+    decimal Confidence,
+
+    DateTime EventTimestamp,
+    string RecordReason
+);
+
+public sealed record MovementReportDto(
+    Guid UserId,
+    DateTime From,
+    DateTime To,
+    int Page,
+    int PageSize,
+    long Total,
+    IReadOnlyList<MovementPointDto> Items
 );
 
 public sealed record TrackingDashboardDto(
