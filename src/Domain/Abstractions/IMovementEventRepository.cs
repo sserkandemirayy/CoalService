@@ -5,6 +5,7 @@ namespace Domain.Abstractions;
 public sealed record MovementHeatMapBucket(
     decimal X,
     decimal Y,
+    decimal Z,
     long Count
 );
 
@@ -88,7 +89,7 @@ public interface IMovementEventRepository
             CancellationToken ct = default);
 
     // ============================================================
-    // HEATMAP
+    // 3D HEATMAP
     // ============================================================
 
     Task<IReadOnlyList<MovementHeatMapBucket>>

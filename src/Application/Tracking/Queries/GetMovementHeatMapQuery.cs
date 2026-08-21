@@ -46,6 +46,10 @@ public sealed class GetMovementHeatMapQueryHandler
             GetMovementHeatMapQuery request,
             CancellationToken ct)
     {
+        // ========================================================
+        // FLOOR MAP VALIDATION
+        // ========================================================
+
         if (request.FloorMapId == Guid.Empty)
         {
             return Result<MovementHeatMapDto>
@@ -53,11 +57,17 @@ public sealed class GetMovementHeatMapQueryHandler
                     "FloorMapId is required.");
         }
 
+        // ========================================================
+        // DATE VALIDATION
+        // ========================================================
+
         var from =
-            EnsureUtc(request.From);
+            EnsureUtc(
+                request.From);
 
         var to =
-            EnsureUtc(request.To);
+            EnsureUtc(
+                request.To);
 
         if (from == default ||
             to == default)
@@ -74,6 +84,10 @@ public sealed class GetMovementHeatMapQueryHandler
                     "'to' cannot be earlier than 'from'.");
         }
 
+        // ========================================================
+        // GRID VALIDATION
+        // ========================================================
+
         if (request.GridSize <= 0)
         {
             return Result<MovementHeatMapDto>
@@ -82,8 +96,13 @@ public sealed class GetMovementHeatMapQueryHandler
         }
 
         /*
-         * Çok ufak grid yanlışlıkla yüz binlerce
-         * heatmap hücresi üretmesin.
+         * Çok küçük voxel kullanılması çok fazla
+         * grouping sonucu oluşturabilir.
+         *
+         * 0.10 =
+         * 10cm x 10cm x 10cm
+         *
+         * minimum voxel.
          */
         if (request.GridSize < 0.10m)
         {
@@ -92,10 +111,10 @@ public sealed class GetMovementHeatMapQueryHandler
                     "Minimum GridSize is 0.10.");
         }
 
-        /*
-         * Map hem mevcut olmalı hem de
-         * repository scope'una dahil olmalı.
-         */
+        // ========================================================
+        // MAP ACCESS / EXISTENCE
+        // ========================================================
+
         var floorMap =
             await _floorMapRepository
                 .GetByIdAsync(
@@ -108,6 +127,10 @@ public sealed class GetMovementHeatMapQueryHandler
                 .Failure(
                     "Floor map not found or access denied.");
         }
+
+        // ========================================================
+        // ZONE VALIDATION
+        // ========================================================
 
         if (request.FloorMapZoneId.HasValue)
         {
@@ -127,6 +150,10 @@ public sealed class GetMovementHeatMapQueryHandler
             }
         }
 
+        // ========================================================
+        // GET 3D VOXELS
+        // ========================================================
+
         var buckets =
             await _movementRepository
                 .GetHeatMapAsync(
@@ -144,6 +171,10 @@ public sealed class GetMovementHeatMapQueryHandler
 
                     ct);
 
+        // ========================================================
+        // HEATMAP STATISTICS
+        // ========================================================
+
         var maxCount =
             buckets.Count == 0
                 ? 0
@@ -153,6 +184,10 @@ public sealed class GetMovementHeatMapQueryHandler
         var totalPointCount =
             buckets.Sum(
                 x => x.Count);
+
+        // ========================================================
+        // NORMALIZED INTENSITY
+        // ========================================================
 
         var cells =
             buckets
@@ -167,12 +202,19 @@ public sealed class GetMovementHeatMapQueryHandler
                     return new MovementHeatMapCellDto(
                         x.X,
                         x.Y,
+                        x.Z,
+
                         x.Count,
+
                         decimal.Round(
                             intensity,
                             4));
                 })
                 .ToList();
+
+        // ========================================================
+        // RESULT
+        // ========================================================
 
         var dto =
             new MovementHeatMapDto(
@@ -197,14 +239,25 @@ public sealed class GetMovementHeatMapQueryHandler
             .Success(dto);
     }
 
+    // ============================================================
+    // UTC
+    // ============================================================
+
     private static DateTime EnsureUtc(
         DateTime value)
     {
-        if (value.Kind == DateTimeKind.Utc)
+        if (value.Kind ==
+            DateTimeKind.Utc)
+        {
             return value;
+        }
 
-        if (value.Kind == DateTimeKind.Local)
-            return value.ToUniversalTime();
+        if (value.Kind ==
+            DateTimeKind.Local)
+        {
+            return value
+                .ToUniversalTime();
+        }
 
         return DateTime.SpecifyKind(
             value,

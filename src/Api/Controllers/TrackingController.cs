@@ -191,7 +191,7 @@ public class TrackingController : BaseController
     }
 
     // ================================================================
-    // MOVEMENT PLAYBACK
+    // MOVEMENT PLAYBACK - 3D
     // ================================================================
 
     [Authorize(Policy = "ViewTrackingHistory")]
@@ -236,7 +236,7 @@ public class TrackingController : BaseController
     }
 
     // ================================================================
-    // MOVEMENT HEATMAP
+    // MOVEMENT 3D HEATMAP
     // ================================================================
 
     [Authorize(Policy = "ViewTrackingHistory")]
@@ -252,6 +252,13 @@ public class TrackingController : BaseController
         [FromQuery] Guid? branchId,
         [FromQuery] Guid? floorMapZoneId,
 
+        /*
+         * 3D voxel edge size.
+         *
+         * gridSize = 1
+         * =>
+         * 1m x 1m x 1m
+         */
         [FromQuery] decimal gridSize = 1m,
 
         CancellationToken ct = default)

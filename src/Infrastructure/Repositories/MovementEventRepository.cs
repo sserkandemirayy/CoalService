@@ -48,14 +48,13 @@ public sealed class MovementEventRepository
          *
          * Burada ApplyScope kullanılmıyor.
          *
-         * Bu metod kullanıcıya rapor göstermek için değil,
-         * ProcessLocationCalculatedCommand içerisinde yeni movement
-         * noktasının yazılıp yazılmayacağına karar vermek için
-         * kullanılıyor.
+         * Bu metod raporlama amacıyla değil,
+         * event processing sırasında son movement
+         * noktasını bulmak amacıyla kullanılıyor.
          *
-         * Scope uygulanırsa background/integration event processing
-         * sırasında önceki movement görünmeyebilir ve her event
-         * yanlışlıkla FirstPoint olarak değerlendirilebilir.
+         * Scope uygulanırsa background / integration
+         * event processing sırasında önceki movement
+         * kaydı görünmeyebilir.
          */
 
         return await _db.MovementEvents
@@ -251,7 +250,7 @@ public sealed class MovementEventRepository
     }
 
     // ============================================================
-    // HEATMAP
+    // 3D HEATMAP
     // ============================================================
 
     public async Task<IReadOnlyList<MovementHeatMapBucket>>
@@ -321,14 +320,39 @@ public sealed class MovementEventRepository
         }
 
         /*
+         * ========================================================
+         * 3D VOXEL HEATMAP
+         * ========================================================
+         *
+         * gridSize = 1 ise:
+         *
+         * Her voxel:
+         *
+         * 1m X 1m X 1m
+         *
+         * olacaktır.
+         *
          * Örnek:
          *
-         * gridSize = 1 metre
+         * Point A:
+         * X = 12.10
+         * Y = 8.20
+         * Z = 1.30
          *
-         * X = 12.1
-         * X = 12.8
+         * Point B:
+         * X = 12.80
+         * Y = 8.90
+         * Z = 1.70
          *
-         * İkisi de aynı heatmap hücresine düşer.
+         * aynı voxel içerisinde yer alır.
+         *
+         * Fakat:
+         *
+         * X = 12.80
+         * Y = 8.90
+         * Z = 2.20
+         *
+         * farklı bir Z voxel'ına düşer.
          */
 
         var grouped =
@@ -341,12 +365,17 @@ public sealed class MovementEventRepository
 
                     YBucket =
                         Math.Floor(
-                            x.Y / gridSize)
+                            x.Y / gridSize),
+
+                    ZBucket =
+                        Math.Floor(
+                            x.Z / gridSize)
                 })
                 .Select(g => new
                 {
                     g.Key.XBucket,
                     g.Key.YBucket,
+                    g.Key.ZBucket,
 
                     Count =
                         g.LongCount()
@@ -354,6 +383,24 @@ public sealed class MovementEventRepository
                 .OrderByDescending(x =>
                     x.Count)
                 .ToListAsync(ct);
+
+        /*
+         * API'ye voxel'in başlangıç noktası yerine
+         * merkez koordinatını döndürüyoruz.
+         *
+         * Örnek:
+         *
+         * voxel:
+         * X = 12 -> 13
+         *
+         * API:
+         * X = 12.5
+         *
+         * döndürür.
+         *
+         * Bu frontend üzerinde 3D cube / sphere
+         * çizimini kolaylaştırır.
+         */
 
         var halfGrid =
             gridSize / 2m;
@@ -366,6 +413,10 @@ public sealed class MovementEventRepository
                     halfGrid,
 
                     (x.YBucket *
+                     gridSize) +
+                    halfGrid,
+
+                    (x.ZBucket *
                      gridSize) +
                     halfGrid,
 

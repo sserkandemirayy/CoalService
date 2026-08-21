@@ -99,12 +99,25 @@ public sealed record MovementPlaybackDto(
 );
 
 // ============================================================
-// HEATMAP
+// 3D HEATMAP
 // ============================================================
 
+/// <summary>
+/// 3D heatmap voxel merkezini temsil eder.
+///
+/// X / Y / Z:
+/// voxel'in merkez koordinatıdır.
+///
+/// Count:
+/// ilgili voxel içerisine düşen movement point sayısıdır.
+///
+/// Intensity:
+/// 0 - 1 arasında normalize edilmiş yoğunluktur.
+/// </summary>
 public sealed record MovementHeatMapCellDto(
     decimal X,
     decimal Y,
+    decimal Z,
 
     long Count,
 
@@ -122,6 +135,13 @@ public sealed record MovementHeatMapDto(
     Guid? BranchId,
     Guid? FloorMapZoneId,
 
+    /// <summary>
+    /// 3D voxel edge size.
+    ///
+    /// Örnek:
+    /// GridSize = 1
+    /// => 1m x 1m x 1m voxel.
+    /// </summary>
     decimal GridSize,
 
     long TotalPointCount,
